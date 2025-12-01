@@ -14,9 +14,11 @@ export default function Navigation({ activeTab, onTabChange }) {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           <div className="flex items-center">
-            <h1 className="text-xl font-bold text-gray-900 dark:text-white">
-              Mood Meter Tracker
-            </h1>
+            <img 
+              src="/images/moodmeter.png" 
+              alt="Mood Meter Tracker" 
+              className="h-10 w-10 md:h-12 md:w-12 object-contain"
+            />
           </div>
           <div className="flex items-center gap-1 overflow-x-auto">
             {tabs.map(tab => {

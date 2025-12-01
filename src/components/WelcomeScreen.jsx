@@ -1,4 +1,4 @@
-import { Sparkles, TrendingUp, BarChart3, Heart } from 'lucide-react';
+import { Sparkles, TrendingUp, BarChart3 } from 'lucide-react';
 
 export default function WelcomeScreen({ onGetStarted }) {
   return (
@@ -6,8 +6,12 @@ export default function WelcomeScreen({ onGetStarted }) {
       <div className="max-w-4xl w-full">
         <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl p-8 md:p-12 animate-fade-in">
           <div className="text-center mb-8">
-            <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full mb-4">
-              <Heart className="w-10 h-10 text-white" />
+            <div className="inline-flex items-center justify-center mb-4">
+              <img 
+                src="/images/moodmeter.png" 
+                alt="Mood Meter Tracker" 
+                className="w-24 h-24 md:w-32 md:h-32 object-contain"
+              />
             </div>
             <h1 className="text-4xl md:text-5xl font-bold text-gray-900 dark:text-white mb-4">
               Welcome to Mood Meter Tracker
