@@ -1,0 +1,253 @@
+import { useState, useEffect } from 'react';
+import { Download, Upload, Trash2, Moon, Sun, Bell, Save } from 'lucide-react';
+import { getUserPreferences, saveUserPreferences, deleteAllMoodEntries, getMoodEntries } from '../utils/storage';
+import { exportToCSV, exportToJSON, importFromJSON } from '../utils/exportUtils';
+
+export default function Settings({ onPreferencesChange, onDataChange }) {
+  const [preferences, setPreferences] = useState(getUserPreferences());
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [importError, setImportError] = useState('');
+
+  useEffect(() => {
+    const prefs = getUserPreferences();
+    setPreferences(prefs);
+  }, []);
+
+  const handlePreferenceChange = (key, value) => {
+    const updated = { ...preferences, [key]: value };
+    setPreferences(updated);
+    saveUserPreferences(updated);
+    onPreferencesChange(updated);
+  };
+
+  const handleExportCSV = () => {
+    const entries = getMoodEntries();
+    exportToCSV(entries);
+  };
+
+  const handleExportJSON = () => {
+    const entries = getMoodEntries();
+    exportToJSON(entries);
+  };
+
+  const handleImportJSON = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    setImportError('');
+    importFromJSON(file)
+      .then(entries => {
+        // Merge with existing entries
+        const existing = getMoodEntries();
+        const merged = [...existing, ...entries];
+        // Save imported entries (in a real app, you'd want to deduplicate)
+        window.storage.setItem('mood-entries', JSON.stringify(merged));
+        onDataChange();
+        alert(`Successfully imported ${entries.length} entries`);
+        e.target.value = ''; // Reset file input
+      })
+      .catch(error => {
+        setImportError(error.message || 'Failed to import file');
+        e.target.value = '';
+      });
+  };
+
+  const handleDeleteAll = () => {
+    if (window.confirm('Are you absolutely sure? This will delete ALL your mood entries and cannot be undone.')) {
+      deleteAllMoodEntries();
+      onDataChange();
+      setShowDeleteConfirm(false);
+      alert('All data has been deleted');
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Appearance */}
+      <div className="bg-white dark:bg-gray-800 p-6 rounded-lg border border-gray-200 dark:border-gray-700">
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+          Appearance
+        </h3>
+        <div className="space-y-4">
+          <label className="flex items-center justify-between cursor-pointer">
+            <div className="flex items-center gap-3">
+              {preferences.darkMode ? (
+                <Moon className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+              ) : (
+                <Sun className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+              )}
+              <span className="text-gray-900 dark:text-white">Dark Mode</span>
+            </div>
+            <label className="relative inline-flex items-center cursor-pointer">
+              <input
+                type="checkbox"
+                checked={preferences.darkMode}
+                onChange={(e) => handlePreferenceChange('darkMode', e.target.checked)}
+                className="sr-only peer"
+              />
+              <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-500 relative"></div>
+            </label>
+          </label>
+        </div>
+      </div>
+
+      {/* Reminders */}
+      <div className="bg-white dark:bg-gray-800 p-6 rounded-lg border border-gray-200 dark:border-gray-700">
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+          Daily Reminders
+        </h3>
+        <div className="space-y-4">
+          <label className="flex items-center justify-between cursor-pointer">
+            <div className="flex items-center gap-3">
+              <Bell className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+              <span className="text-gray-900 dark:text-white">Enable Daily Reminder</span>
+            </div>
+            <label className="relative inline-flex items-center cursor-pointer">
+              <input
+                type="checkbox"
+                checked={preferences.dailyReminder}
+                onChange={(e) => handlePreferenceChange('dailyReminder', e.target.checked)}
+                className="sr-only peer"
+              />
+              <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-500 relative"></div>
+            </label>
+          </label>
+          {preferences.dailyReminder && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Reminder Time
+              </label>
+              <input
+                type="time"
+                value={preferences.reminderTime}
+                onChange={(e) => handlePreferenceChange('reminderTime', e.target.value)}
+                className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+              />
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Privacy */}
+      <div className="bg-white dark:bg-gray-800 p-6 rounded-lg border border-gray-200 dark:border-gray-700">
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+          Privacy
+        </h3>
+        <label className="flex items-center justify-between cursor-pointer">
+          <span className="text-gray-900 dark:text-white">Privacy Mode (Hide notes in preview)</span>
+          <label className="relative inline-flex items-center cursor-pointer">
+            <input
+              type="checkbox"
+              checked={preferences.privacyMode}
+              onChange={(e) => handlePreferenceChange('privacyMode', e.target.checked)}
+              className="sr-only peer"
+            />
+            <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-500 relative"></div>
+          </label>
+        </label>
+      </div>
+
+      {/* Goals */}
+      <div className="bg-white dark:bg-gray-800 p-6 rounded-lg border border-gray-200 dark:border-gray-700">
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+          Daily Goal
+        </h3>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            Check-ins per day
+          </label>
+          <input
+            type="number"
+            min="1"
+            max="10"
+            value={preferences.dailyGoal}
+            onChange={(e) => handlePreferenceChange('dailyGoal', parseInt(e.target.value) || 1)}
+            className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white w-32"
+          />
+        </div>
+      </div>
+
+      {/* Data Export */}
+      <div className="bg-white dark:bg-gray-800 p-6 rounded-lg border border-gray-200 dark:border-gray-700">
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+          Export Data
+        </h3>
+        <div className="flex flex-col sm:flex-row gap-3">
+          <button
+            onClick={handleExportCSV}
+            className="flex items-center justify-center gap-2 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+          >
+            <Download className="w-4 h-4" />
+            Export as CSV
+          </button>
+          <button
+            onClick={handleExportJSON}
+            className="flex items-center justify-center gap-2 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+          >
+            <Download className="w-4 h-4" />
+            Export as JSON
+          </button>
+        </div>
+      </div>
+
+      {/* Data Import */}
+      <div className="bg-white dark:bg-gray-800 p-6 rounded-lg border border-gray-200 dark:border-gray-700">
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+          Import Data
+        </h3>
+        <div className="space-y-3">
+          <label className="flex items-center justify-center gap-2 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors cursor-pointer">
+            <Upload className="w-4 h-4" />
+            <span>Import from JSON</span>
+            <input
+              type="file"
+              accept=".json"
+              onChange={handleImportJSON}
+              className="hidden"
+            />
+          </label>
+          {importError && (
+            <p className="text-sm text-red-600 dark:text-red-400">{importError}</p>
+          )}
+        </div>
+      </div>
+
+      {/* Delete All Data */}
+      <div className="bg-white dark:bg-gray-800 p-6 rounded-lg border border-red-200 dark:border-red-900/30">
+        <h3 className="text-lg font-semibold text-red-900 dark:text-red-300 mb-4">
+          Danger Zone
+        </h3>
+        {!showDeleteConfirm ? (
+          <button
+            onClick={() => setShowDeleteConfirm(true)}
+            className="flex items-center gap-2 px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
+          >
+            <Trash2 className="w-4 h-4" />
+            Delete All Data
+          </button>
+        ) : (
+          <div className="space-y-3">
+            <p className="text-sm text-gray-600 dark:text-gray-400">
+              Are you sure you want to delete all your mood entries? This action cannot be undone.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={handleDeleteAll}
+                className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
+              >
+                Yes, Delete Everything
+              </button>
+              <button
+                onClick={() => setShowDeleteConfirm(false)}
+                className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
