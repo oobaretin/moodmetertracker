@@ -17,7 +17,7 @@ export default function Navigation({ activeTab, onTabChange }) {
             <img 
               src="/images/moodmeter.png" 
               alt="Mood Meter Tracker" 
-              className="h-20 w-20 md:h-24 md:w-24 object-contain"
+              className="h-24 w-24 md:h-28 md:w-28 object-contain"
             />
           </div>
           <div className="flex items-center gap-1 overflow-x-auto">
