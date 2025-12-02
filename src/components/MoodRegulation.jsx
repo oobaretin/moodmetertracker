@@ -83,28 +83,23 @@ export default function MoodRegulation({ lastMoodQuadrant }) {
         
         // When countdown reaches 0, transition to next phase
         if (newCountdown <= 0) {
-          let nextPhaseIndex;
-          setBreathingPhase(prevPhase => {
-            // Ensure prevPhase is a valid number
-            const currentPhase = typeof prevPhase === 'number' && prevPhase >= 0 ? prevPhase : 0;
-            nextPhaseIndex = (currentPhase + 1) % BREATHING_PHASES.length;
-            // Ensure nextPhaseIndex is valid
-            if (nextPhaseIndex < 0 || nextPhaseIndex >= BREATHING_PHASES.length) {
-              nextPhaseIndex = 0;
-            }
-            phaseRef.current = nextPhaseIndex;
-            phaseStartTimeRef.current = Date.now(); // Reset phase start time
-            return nextPhaseIndex;
-          });
-          // Return the duration of the next phase (with safety check)
-          if (typeof nextPhaseIndex === 'number' && nextPhaseIndex >= 0 && nextPhaseIndex < BREATHING_PHASES.length) {
-            const nextPhase = BREATHING_PHASES[nextPhaseIndex];
-            if (nextPhase && typeof nextPhase.duration === 'number') {
-              return nextPhase.duration;
-            }
-          }
-          // Fallback to first phase duration if something goes wrong
-          return BREATHING_PHASES[0]?.duration || 4;
+          // Calculate next phase index using current phase from ref (most up-to-date)
+          const currentPhaseIndex = phaseRef.current;
+          const nextPhaseIndex = (currentPhaseIndex + 1) % BREATHING_PHASES.length;
+          
+          // Get the next phase duration before updating state
+          const nextPhase = BREATHING_PHASES[nextPhaseIndex];
+          const nextDuration = nextPhase && typeof nextPhase.duration === 'number' 
+            ? nextPhase.duration 
+            : BREATHING_PHASES[0].duration;
+          
+          // Update phase state and refs
+          setBreathingPhase(nextPhaseIndex);
+          phaseRef.current = nextPhaseIndex;
+          phaseStartTimeRef.current = Date.now(); // Reset phase start time
+          
+          // Return the duration of the next phase
+          return nextDuration;
         }
         
         return newCountdown;
