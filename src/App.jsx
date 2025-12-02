@@ -63,7 +63,6 @@ function App() {
   useEffect(() => {
     const streak = calculateStreak(entries);
     const updatedStats = {
-      ...stats,
       streakCount: streak,
       totalCheckIns: entries.length,
       lastCheckIn: entries.length > 0 ? entries[entries.length - 1].timestamp : null,
@@ -154,10 +153,7 @@ function App() {
       // Mark as seen first
       markWelcomeSeen();
       // Update state - use functional updates to ensure they happen
-      setShowWelcome(prev => {
-        console.log('Setting showWelcome to false, previous:', prev);
-        return false;
-      });
+      setShowWelcome(false);
       setActiveTab('track');
     } catch (error) {
       console.error('Error in handleGetStarted:', error);
