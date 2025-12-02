@@ -60,29 +60,36 @@ export default function MoodRegulation({ lastMoodQuadrant }) {
   const [gratitudeEntry, setGratitudeEntry] = useState('');
   const [currentPrompt, setCurrentPrompt] = useState(GRATITUDE_PROMPTS[0]);
   const phaseStartTimeRef = useRef(Date.now());
+  const animationFrameRef = useRef(null);
   const phaseRef = useRef(0);
 
   useEffect(() => {
     if (!breathingActive) return;
 
-    // Update countdown every second
+    // Update countdown every second - this ensures accurate timing
     const countdownInterval = setInterval(() => {
       setBreathingCountdown(prev => {
-        if (prev <= 1) {
+        const newCountdown = prev - 1;
+        
+        // When countdown reaches 0, transition to next phase
+        if (newCountdown <= 0) {
+          let nextPhaseIndex;
           setBreathingPhase(prevPhase => {
-            const nextPhase = (prevPhase + 1) % BREATHING_PHASES.length;
-            phaseRef.current = nextPhase;
+            nextPhaseIndex = (prevPhase + 1) % BREATHING_PHASES.length;
+            phaseRef.current = nextPhaseIndex;
             phaseStartTimeRef.current = Date.now(); // Reset phase start time
-            return nextPhase;
+            return nextPhaseIndex;
           });
-          return BREATHING_PHASES[phaseRef.current].duration;
+          // Return the duration of the next phase (which we just set)
+          return BREATHING_PHASES[nextPhaseIndex].duration;
         }
-        return prev - 1;
+        
+        return newCountdown;
       });
     }, 1000);
 
-    // Update animation smoothly (every 50ms for very smooth animation)
-    const animationInterval = setInterval(() => {
+    // Smooth animation using requestAnimationFrame for better performance
+    const animate = () => {
       const currentPhaseIndex = phaseRef.current;
       const currentPhase = BREATHING_PHASES[currentPhaseIndex];
       const now = Date.now();
@@ -90,24 +97,28 @@ export default function MoodRegulation({ lastMoodQuadrant }) {
       const progress = Math.min(elapsed / currentPhase.duration, 1);
       
       if (currentPhaseIndex === 0) {
-        // Breathe In: Scale from 1 to 1.8 over 4 seconds (smoother, larger expansion)
-        // Use easing function for natural breathing feel
+        // Breathe In: Scale from 1 to 1.8 over 4 seconds
         const easedProgress = 1 - Math.pow(1 - progress, 3); // Ease-out cubic
         setCircleScale(1 + (easedProgress * 0.8));
       } else if (currentPhaseIndex === 1) {
         // Hold: Keep at 1.8 for 7 seconds (completely still)
         setCircleScale(1.8);
       } else {
-        // Breathe Out: Scale from 1.8 to 1 over 8 seconds (smoother, slower)
-        // Use easing function for natural breathing feel
+        // Breathe Out: Scale from 1.8 to 1 over 8 seconds
         const easedProgress = 1 - Math.pow(1 - progress, 2); // Ease-out quadratic
         setCircleScale(1.8 - (easedProgress * 0.8));
       }
-    }, 50); // Update every 50ms for very smooth animation
+      
+      animationFrameRef.current = requestAnimationFrame(animate);
+    };
+
+    animationFrameRef.current = requestAnimationFrame(animate);
 
     return () => {
       clearInterval(countdownInterval);
-      clearInterval(animationInterval);
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current);
+      }
     };
   }, [breathingActive]);
 
@@ -123,8 +134,12 @@ export default function MoodRegulation({ lastMoodQuadrant }) {
   const stopBreathing = () => {
     setBreathingActive(false);
     setBreathingPhase(0);
+    phaseRef.current = 0;
     setBreathingCountdown(4);
     setCircleScale(1); // Reset to normal size
+    if (animationFrameRef.current) {
+      cancelAnimationFrame(animationFrameRef.current);
+    }
   };
 
   const resetBreathing = () => {
