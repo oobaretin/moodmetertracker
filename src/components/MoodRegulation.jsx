@@ -85,13 +85,26 @@ export default function MoodRegulation({ lastMoodQuadrant }) {
         if (newCountdown <= 0) {
           let nextPhaseIndex;
           setBreathingPhase(prevPhase => {
-            nextPhaseIndex = (prevPhase + 1) % BREATHING_PHASES.length;
+            // Ensure prevPhase is a valid number
+            const currentPhase = typeof prevPhase === 'number' && prevPhase >= 0 ? prevPhase : 0;
+            nextPhaseIndex = (currentPhase + 1) % BREATHING_PHASES.length;
+            // Ensure nextPhaseIndex is valid
+            if (nextPhaseIndex < 0 || nextPhaseIndex >= BREATHING_PHASES.length) {
+              nextPhaseIndex = 0;
+            }
             phaseRef.current = nextPhaseIndex;
             phaseStartTimeRef.current = Date.now(); // Reset phase start time
             return nextPhaseIndex;
           });
-          // Return the duration of the next phase (which we just set)
-          return BREATHING_PHASES[nextPhaseIndex].duration;
+          // Return the duration of the next phase (with safety check)
+          if (typeof nextPhaseIndex === 'number' && nextPhaseIndex >= 0 && nextPhaseIndex < BREATHING_PHASES.length) {
+            const nextPhase = BREATHING_PHASES[nextPhaseIndex];
+            if (nextPhase && typeof nextPhase.duration === 'number') {
+              return nextPhase.duration;
+            }
+          }
+          // Fallback to first phase duration if something goes wrong
+          return BREATHING_PHASES[0]?.duration || 4;
         }
         
         return newCountdown;
@@ -107,6 +120,15 @@ export default function MoodRegulation({ lastMoodQuadrant }) {
 
       const currentPhaseIndex = phaseRef.current;
       const currentPhase = BREATHING_PHASES[currentPhaseIndex];
+      
+      // Safety check: ensure phase exists
+      if (!currentPhase || !currentPhase.duration) {
+        // Fallback to first phase if invalid
+        phaseRef.current = 0;
+        phaseStartTimeRef.current = Date.now();
+        return;
+      }
+      
       const now = Date.now();
       const elapsed = (now - phaseStartTimeRef.current) / 1000; // Elapsed time in seconds
       const progress = Math.min(elapsed / currentPhase.duration, 1);
@@ -166,7 +188,10 @@ export default function MoodRegulation({ lastMoodQuadrant }) {
     }, 100);
   };
 
-  const getCurrentPhase = () => BREATHING_PHASES[breathingPhase];
+  const getCurrentPhase = () => {
+    const phase = BREATHING_PHASES[breathingPhase];
+    return phase || BREATHING_PHASES[0]; // Fallback to first phase if invalid
+  };
 
   const getSuggestedActivities = () => {
     if (!lastMoodQuadrant) return [];
