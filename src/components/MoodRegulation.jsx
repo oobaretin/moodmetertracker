@@ -62,9 +62,19 @@ export default function MoodRegulation({ lastMoodQuadrant }) {
   const phaseStartTimeRef = useRef(Date.now());
   const animationFrameRef = useRef(null);
   const phaseRef = useRef(0);
+  const breathingActiveRef = useRef(false);
 
   useEffect(() => {
-    if (!breathingActive) return;
+    breathingActiveRef.current = breathingActive;
+    
+    if (!breathingActive) {
+      // Cancel any pending animation frames when inactive
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current);
+        animationFrameRef.current = null;
+      }
+      return;
+    }
 
     // Update countdown every second - this ensures accurate timing
     const countdownInterval = setInterval(() => {
@@ -90,6 +100,11 @@ export default function MoodRegulation({ lastMoodQuadrant }) {
 
     // Smooth animation using requestAnimationFrame for better performance
     const animate = () => {
+      // Check if breathing is still active before continuing (using ref for current value)
+      if (!breathingActiveRef.current) {
+        return;
+      }
+
       const currentPhaseIndex = phaseRef.current;
       const currentPhase = BREATHING_PHASES[currentPhaseIndex];
       const now = Date.now();
@@ -118,6 +133,7 @@ export default function MoodRegulation({ lastMoodQuadrant }) {
       clearInterval(countdownInterval);
       if (animationFrameRef.current) {
         cancelAnimationFrame(animationFrameRef.current);
+        animationFrameRef.current = null;
       }
     };
   }, [breathingActive]);
@@ -144,6 +160,7 @@ export default function MoodRegulation({ lastMoodQuadrant }) {
 
   const resetBreathing = () => {
     stopBreathing();
+    // Small delay to ensure cleanup completes before restarting
     setTimeout(() => {
       startBreathing();
     }, 100);
@@ -197,7 +214,7 @@ export default function MoodRegulation({ lastMoodQuadrant }) {
                   width: '128px',
                   height: '128px',
                   transform: `scale(${circleScale})`,
-                  transition: breathingPhase === 1 ? 'none' : 'transform 0.1s ease-out',
+                  transition: 'none', // No CSS transition to avoid conflict with JS animation
                   willChange: 'transform',
                   zIndex: 1,
                 }}
