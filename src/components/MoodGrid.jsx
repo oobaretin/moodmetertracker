@@ -36,21 +36,22 @@ export default function MoodGrid({ onMoodSelect, selectedPosition }) {
 
   const handleClick = useCallback((e) => {
     const rect = e.currentTarget.getBoundingClientRect();
-    const svg = e.currentTarget;
     const scaleX = GRID_SIZE / rect.width;
     const scaleY = GRID_SIZE / rect.height;
-    
-    // Calculate coordinates accounting for SVG scaling
+
     const clientX = e.clientX || (e.touches && e.touches[0]?.clientX);
     const clientY = e.clientY || (e.touches && e.touches[0]?.clientY);
-    
+
+    // Pixel coordinates (0 to GRID_SIZE); quadrant logic matches normalized 0–1:
+    // x>=0.5,y<0.5 => yellow (top right); x<0.5,y<0.5 => red (top left);
+    // x<0.5,y>=0.5 => blue (bottom left); x>=0.5,y>=0.5 => green (bottom right)
     const x = Math.max(0, Math.min(GRID_SIZE, (clientX - rect.left) * scaleX));
     const y = Math.max(0, Math.min(GRID_SIZE, (clientY - rect.top) * scaleY));
-    
+
     const quadrant = getQuadrant(x, y);
     const energy = calculateEnergy(y);
     const pleasantness = calculatePleasantness(x);
-    
+
     onMoodSelect({ x, y, quadrant, energy, pleasantness });
   }, [onMoodSelect]);
 
@@ -108,7 +109,7 @@ export default function MoodGrid({ onMoodSelect, selectedPosition }) {
   const displayPosition = hoverPosition || selectedPosition;
 
   return (
-    <div className="relative flex justify-center items-center w-full">
+    <div className="relative flex justify-center items-center w-full" id="moodGridContainer">
       <div className="relative inline-block">
         <svg
           width={GRID_SIZE}
@@ -186,16 +187,17 @@ export default function MoodGrid({ onMoodSelect, selectedPosition }) {
             ))
           )}
 
-          {/* Hover/Selected position indicator */}
+          {/* Selection dot (where user clicked) + hover indicator */}
           {displayPosition && (
             <>
               <circle
+                id="selectionDot"
                 cx={displayPosition.x}
                 cy={displayPosition.y}
-                r={isHovering ? "10" : "8"}
+                r={isHovering ? "10" : "6"}
                 fill={isHovering ? getQuadrantColor(displayPosition.quadrant) : "white"}
-                stroke={isHovering ? "white" : "#374151"}
-                strokeWidth={isHovering ? "2" : "3"}
+                stroke={isHovering ? "white" : "black"}
+                strokeWidth={isHovering ? "2" : "2"}
                 className="pointer-events-none transition-all"
                 style={{
                   opacity: isHovering ? 0.8 : 1,

@@ -3,6 +3,8 @@ import Navigation from './components/Navigation';
 import WelcomeScreen from './components/WelcomeScreen';
 import MoodGrid from './components/MoodGrid';
 import MoodEntryModal from './components/MoodEntryModal';
+import MoodPromptModal from './components/MoodPromptModal';
+import ShiftCard from './components/ShiftCard';
 import MoodHistory from './components/MoodHistory';
 import Analytics from './components/Analytics';
 import MoodRegulation from './components/MoodRegulation';
@@ -36,6 +38,10 @@ function App() {
   const [editingEntry, setEditingEntry] = useState(null);
   const [toasts, setToasts] = useState([]);
   const [celebration, setCelebration] = useState({ show: false, message: '' });
+  const [showMoodPrompt, setShowMoodPrompt] = useState(false);
+  const [promptQuadrant, setPromptQuadrant] = useState(null);
+  const [showShiftCard, setShowShiftCard] = useState(false);
+  const [shiftCardQuadrant, setShiftCardQuadrant] = useState(null);
 
   // Load entries on mount
   useEffect(() => {
@@ -105,7 +111,11 @@ function App() {
       saveMoodEntry(moodData);
       loadEntries();
       addToast('Mood logged successfully! 🎉', 'success');
-      
+      // Show contextual mood prompt after a short delay so entry modal closes first
+      setTimeout(() => {
+        setPromptQuadrant(moodData.quadrant);
+        setShowMoodPrompt(true);
+      }, 350);
       // Check for streak milestones
       const newStreak = calculateStreak([...entries, moodData]);
       if (newStreak === 7) {
@@ -119,7 +129,6 @@ function App() {
           addToast('🌟 Amazing! 30-day streak achieved!', 'success');
         }, 500);
       }
-      
       // Check for total check-ins milestone
       if (entries.length + 1 === 100) {
         setTimeout(() => {
@@ -239,6 +248,28 @@ function App() {
         }}
         onSave={handleSaveMood}
         initialData={editingEntry || selectedMood}
+      />
+
+      <MoodPromptModal
+        isOpen={showMoodPrompt}
+        quadrant={promptQuadrant}
+        onClose={() => {
+          setShowMoodPrompt(false);
+          setPromptQuadrant(null);
+        }}
+        onYesHelpShift={(quadrant) => {
+          setShiftCardQuadrant(quadrant);
+          setShowShiftCard(true);
+        }}
+      />
+
+      <ShiftCard
+        isOpen={showShiftCard}
+        quadrant={shiftCardQuadrant}
+        onClose={() => {
+          setShowShiftCard(false);
+          setShiftCardQuadrant(null);
+        }}
       />
 
       <ToastContainer toasts={toasts} onRemove={removeToast} />
