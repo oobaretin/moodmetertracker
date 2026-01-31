@@ -51,6 +51,7 @@ function App() {
   const [showShiftCard, setShowShiftCard] = useState(false);
   const [shiftCardQuadrant, setShiftCardQuadrant] = useState(null);
   const [selectionDotPosition, setSelectionDotPosition] = useState(null);
+  const [snappedEmotionWord, setSnappedEmotionWord] = useState(null);
   const [moodHistoryList, setMoodHistoryList] = useState(() => getMoodHistory());
 
   // Load entries and mood history on mount
@@ -107,6 +108,7 @@ function App() {
   const handleMoodSelect = useCallback((moodData) => {
     setSelectedMood(moodData);
     setSelectionDotPosition({ x: moodData.x, y: moodData.y });
+    setSnappedEmotionWord(moodData.snappedWord ?? null);
     setLastMood({ x: moodData.x, y: moodData.y, timestamp: Date.now() });
     setEditingEntry(null);
     setModalOpen(true);
@@ -218,6 +220,7 @@ function App() {
                   onMoodSelect={handleMoodSelect}
                   selectedPosition={selectedMood}
                   selectionDotPosition={selectionDotPosition}
+                  snappedEmotionWord={snappedEmotionWord}
                 />
                 <QuickMoodButtons onMoodSelect={handleMoodSelect} />
               </div>
@@ -325,9 +328,11 @@ function App() {
         isOpen={showShiftCard}
         quadrant={shiftCardQuadrant}
         moodHistory={moodHistoryList}
+        initialNote={snappedEmotionWord ? `Feeling ${snappedEmotionWord}. ` : ''}
         onClose={() => {
           setShowShiftCard(false);
           setShiftCardQuadrant(null);
+          setSnappedEmotionWord(null);
           setSelectionDotPosition(null); /* Remove dot when shift card is closed */
         }}
         onSaveNote={(note) => {

@@ -67,7 +67,7 @@ function parseTimestamp(entry) {
   return Number.isNaN(t) ? 0 : t;
 }
 
-export default function ShiftCard({ isOpen, onClose, quadrant, onSaveNote, moodHistory = [] }) {
+export default function ShiftCard({ isOpen, onClose, quadrant, onSaveNote, moodHistory = [], initialNote = '' }) {
   const [moodNote, setMoodNote] = useState('');
   const [breathPhase, setBreathPhase] = useState('idle');
   const [breathScale, setBreathScale] = useState(1);
@@ -95,8 +95,10 @@ export default function ShiftCard({ isOpen, onClose, quadrant, onSaveNote, moodH
         clearTimeout(breathTimeoutRef.current);
         breathTimeoutRef.current = null;
       }
+    } else if (initialNote) {
+      setMoodNote(initialNote);
     }
-  }, [isOpen]);
+  }, [isOpen, initialNote]);
 
   const runBreathStep = (phase) => {
     if (phase === 'inhale') {

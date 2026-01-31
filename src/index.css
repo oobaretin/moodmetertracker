@@ -70,17 +70,61 @@
   animation: slideUp 0.4s ease-out;
 }
 
-/* Selection dot: physical marker on the mood grid (persists until new mood or shift card closed) */
+/* Selection dot: physical marker on the mood grid; smooth snap animation */
+/* pointer-events: none so the dot never blocks clicks (e.g. clicking same spot twice) */
 #selectionDot {
   position: absolute;
   width: 14px;
   height: 14px;
-  background-color: white;
+  background: white;
   border: 2px solid #1e293b;
   border-radius: 50%;
   box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
   pointer-events: none;
-  z-index: 5;
-  transition: all 0.2s ease-out;
+  z-index: 10;
+  transition: left 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275),
+              top 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+/* Glassmorphism tooltip: lets quadrant gradients peek through for visual continuity */
+.tooltip {
+  background: rgba(255, 255, 255, 0.65);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  border-radius: 12px;
+  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.15);
+  padding: 12px 16px;
+  color: #1e293b;
+}
+
+.dark .tooltip {
+  background: rgba(30, 41, 59, 0.65);
+  border-color: rgba(255, 255, 255, 0.15);
+  color: #e2e8f0;
+}
+
+/* Emotion labels: hover polish + pro-grade snap highlight (active-snap) */
+.emotion-label {
+  transition: all 0.3s ease;
+  opacity: 0.8;
+  cursor: pointer;
+  transform-origin: center;
+}
+
+.emotion-label:hover {
+  transform: scale(1.1);
+  fill: #000;
+}
+
+.dark .emotion-label:hover {
+  fill: #f1f5f9;
+}
+
+.emotion-label.active-snap {
+  opacity: 1;
+  font-weight: 800;
+  transform: scale(1.15);
+  text-shadow: 0 0 10px rgba(255, 255, 255, 0.8);
 }
 
