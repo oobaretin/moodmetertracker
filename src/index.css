@@ -49,3 +49,17 @@
   @apply bg-gray-400 dark:bg-gray-500;
 }
 
+/* Selection dot: physical marker on the mood grid (persists until new mood or shift card closed) */
+#selectionDot {
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  background-color: white;
+  border: 2px solid #1e293b;
+  border-radius: 50%;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+  pointer-events: none;
+  z-index: 5;
+  transition: all 0.2s ease-out;
+}
+

@@ -42,6 +42,8 @@ export const STORAGE_KEYS = {
   USER_PREFERENCES: 'user-preferences',
   USER_STATS: 'user-stats',
   HAS_SEEN_WELCOME: 'has-seen-welcome',
+  LAST_MOOD: 'lastMood',
+  MOOD_HISTORY: 'moodHistory',
 };
 
 /**
@@ -93,9 +95,100 @@ export function clearAllStorage() {
     Object.values(STORAGE_KEYS).forEach(key => {
       window.storage.removeItem(key);
     });
+    if (typeof localStorage !== 'undefined') {
+      localStorage.removeItem(STORAGE_KEYS.LAST_MOOD);
+      localStorage.removeItem(STORAGE_KEYS.MOOD_HISTORY);
+    }
   } catch (error) {
     console.error('Error clearing storage:', error);
     throw error;
+  }
+}
+
+/**
+ * Last mood (selection dot) – persisted in localStorage so it restores on return.
+ * @returns {{ x: number, y: number, timestamp: number } | null}
+ */
+export function getLastMood() {
+  try {
+    if (typeof localStorage === 'undefined') return null;
+    const raw = localStorage.getItem(STORAGE_KEYS.LAST_MOOD);
+    return raw ? JSON.parse(raw) : null;
+  } catch (error) {
+    return null;
+  }
+}
+
+/**
+ * Save last mood position for restore on next visit.
+ * @param {{ x: number, y: number, timestamp?: number }} entry - Pixel coords (0–GRID_SIZE) and optional timestamp
+ */
+export function setLastMood(entry) {
+  try {
+    if (typeof localStorage === 'undefined') return;
+    const moodEntry = {
+      x: entry.x,
+      y: entry.y,
+      timestamp: entry.timestamp ?? Date.now(),
+    };
+    localStorage.setItem(STORAGE_KEYS.LAST_MOOD, JSON.stringify(moodEntry));
+  } catch (error) {
+    console.error('Error saving last mood:', error);
+  }
+}
+
+const MOOD_HISTORY_MAX = 10;
+
+/**
+ * Mood history (recent check-ins) – persisted in localStorage.
+ * @returns {Array<{ quadrant: string, time: string, date: string }>}
+ */
+export function getMoodHistory() {
+  try {
+    if (typeof localStorage === 'undefined') return [];
+    const raw = localStorage.getItem(STORAGE_KEYS.MOOD_HISTORY);
+    const list = raw ? JSON.parse(raw) : [];
+    return Array.isArray(list) ? list : [];
+  } catch (error) {
+    return [];
+  }
+}
+
+/**
+ * Append one entry to mood history; keeps only the last MOOD_HISTORY_MAX.
+ * @param {{ quadrant: string, time?: string, date?: string }} entry
+ */
+export function addToMoodHistory(entry) {
+  try {
+    if (typeof localStorage === 'undefined') return;
+    const history = getMoodHistory();
+    const newEntry = {
+      quadrant: entry.quadrant,
+      time: entry.time ?? new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      date: entry.date ?? new Date().toLocaleDateString(),
+      timestamp: entry.timestamp ?? Date.now(),
+    };
+    history.push(newEntry);
+    if (history.length > MOOD_HISTORY_MAX) history.shift();
+    localStorage.setItem(STORAGE_KEYS.MOOD_HISTORY, JSON.stringify(history));
+  } catch (error) {
+    console.error('Error saving mood history:', error);
+  }
+}
+
+/**
+ * Update the most recent mood history entry with an optional note (e.g. from Shift Card).
+ * @param {string} note - Note text to attach to the last entry
+ */
+export function updateLastMoodHistoryNote(note) {
+  try {
+    if (typeof localStorage === 'undefined') return;
+    const history = getMoodHistory();
+    if (history.length === 0) return;
+    history[history.length - 1] = { ...history[history.length - 1], note: note || '' };
+    localStorage.setItem(STORAGE_KEYS.MOOD_HISTORY, JSON.stringify(history));
+  } catch (error) {
+    console.error('Error updating mood history note:', error);
   }
 }
 
@@ -157,6 +250,18 @@ export function deleteMoodEntry(id) {
  */
 export function deleteAllMoodEntries() {
   setStorageItem(STORAGE_KEYS.MOOD_ENTRIES, []);
+}
+
+/**
+ * Clear all mood-related data: entries, last mood dot, mood history.
+ * Does not clear user preferences or stats.
+ */
+export function clearAllMoodData() {
+  deleteAllMoodEntries();
+  if (typeof localStorage !== 'undefined') {
+    localStorage.removeItem(STORAGE_KEYS.LAST_MOOD);
+    localStorage.removeItem(STORAGE_KEYS.MOOD_HISTORY);
+  }
 }
 
 /**

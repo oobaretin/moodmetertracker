@@ -1,7 +1,9 @@
+import { useState, useEffect } from 'react';
+
 /**
- * Shift Card – modal-style card with quadrant-specific strategies.
- * Structure matches spec: shiftCard, cardBadge, cardTitle, cardDesc, icon1/title1/text1, icon2/title2/text2.
- * Data: shiftData[key] → updateAndShowCard(key). Shown after "Yes, help me shift" from mood prompt.
+ * Shift Card – modal-style card with quadrant-specific strategies and optional note.
+ * Structure: shiftCard, cardBadge, cardTitle, cardDesc, action items, note section, "I feel better".
+ * Shown after "Yes, help me shift" from mood prompt.
  */
 
 const shiftData = {
@@ -55,11 +57,22 @@ const BADGE_CLASSES = {
   green: 'bg-[#dcfce7] text-[#16a34a] dark:bg-emerald-900/30 dark:text-emerald-300',
 };
 
-export default function ShiftCard({ isOpen, onClose, quadrant }) {
+export default function ShiftCard({ isOpen, onClose, quadrant, onSaveNote }) {
+  const [moodNote, setMoodNote] = useState('');
+
+  useEffect(() => {
+    if (!isOpen) setMoodNote('');
+  }, [isOpen]);
+
   if (!isOpen || !quadrant) return null;
 
   const data = shiftData[quadrant] || shiftData.red;
   const badgeClass = BADGE_CLASSES[quadrant] || BADGE_CLASSES.red;
+
+  const handleSaveAndClose = () => {
+    onSaveNote?.(moodNote);
+    onClose?.();
+  };
 
   return (
     <>
@@ -125,10 +138,24 @@ export default function ShiftCard({ isOpen, onClose, quadrant }) {
           </div>
         </div>
 
+        <div className="note-section mt-4 pt-4 border-t border-slate-200 dark:border-gray-600 text-left">
+          <label htmlFor="moodNote" className="block text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase mb-1">
+            What&apos;s on your mind? (Optional)
+          </label>
+          <textarea
+            id="moodNote"
+            value={moodNote}
+            onChange={(e) => setMoodNote(e.target.value)}
+            placeholder="e.g., Just finished a big project..."
+            rows={3}
+            className="note-input w-full min-h-[60px] p-3 border border-slate-200 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm resize-none outline-none transition-colors focus:border-slate-400 dark:focus:border-gray-500"
+          />
+        </div>
+
         <button
           type="button"
           className="done-btn w-full py-3 bg-[#1e293b] dark:bg-slate-700 text-white border-0 rounded-[10px] font-semibold cursor-pointer mt-2.5 hover:bg-slate-700 dark:hover:bg-slate-600 transition-colors"
-          onClick={onClose}
+          onClick={handleSaveAndClose}
         >
           I feel better
         </button>

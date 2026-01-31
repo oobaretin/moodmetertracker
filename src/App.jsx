@@ -12,6 +12,9 @@ import Settings from './components/Settings';
 import FloatingCheckIn from './components/FloatingCheckIn';
 import StreakBadge from './components/StreakBadge';
 import QuickMoodButtons from './components/QuickMoodButtons';
+import QuadrantTrendsChart from './components/QuadrantTrendsChart';
+import TimeOfDayPatterns from './components/TimeOfDayPatterns';
+import RecentReflections from './components/RecentReflections';
 import Footer from './components/Footer';
 import { ToastContainer } from './components/Toast';
 import Celebration from './components/Celebration';
@@ -24,6 +27,11 @@ import {
   updateUserStats,
   hasSeenWelcome,
   markWelcomeSeen,
+  getLastMood,
+  setLastMood,
+  getMoodHistory,
+  addToMoodHistory,
+  updateLastMoodHistoryNote,
 } from './utils/storage';
 import { calculateStreak, getBadges } from './utils/moodUtils';
 
@@ -42,10 +50,23 @@ function App() {
   const [promptQuadrant, setPromptQuadrant] = useState(null);
   const [showShiftCard, setShowShiftCard] = useState(false);
   const [shiftCardQuadrant, setShiftCardQuadrant] = useState(null);
+  const [selectionDotPosition, setSelectionDotPosition] = useState(null);
+  const [moodHistoryList, setMoodHistoryList] = useState(() => getMoodHistory());
 
-  // Load entries on mount
+  // Load entries and mood history on mount
   useEffect(() => {
     loadEntries();
+    setMoodHistoryList(getMoodHistory());
+  }, []);
+
+  // Restore last mood dot if saved within last 24 hours
+  useEffect(() => {
+    const saved = getLastMood();
+    if (!saved || saved.x == null || saved.y == null) return;
+    const oneDayMs = 24 * 60 * 60 * 1000;
+    if (Date.now() - (saved.timestamp || 0) < oneDayMs) {
+      setSelectionDotPosition({ x: saved.x, y: saved.y });
+    }
   }, []);
 
   // Ensure welcome state is synced with storage on mount
@@ -85,6 +106,8 @@ function App() {
 
   const handleMoodSelect = useCallback((moodData) => {
     setSelectedMood(moodData);
+    setSelectionDotPosition({ x: moodData.x, y: moodData.y });
+    setLastMood({ x: moodData.x, y: moodData.y, timestamp: Date.now() });
     setEditingEntry(null);
     setModalOpen(true);
   }, []);
@@ -109,6 +132,8 @@ function App() {
       }
     } else {
       saveMoodEntry(moodData);
+      addToMoodHistory({ quadrant: moodData.quadrant });
+      setMoodHistoryList(getMoodHistory());
       loadEntries();
       addToast('Mood logged successfully! 🎉', 'success');
       // Show contextual mood prompt after a short delay so entry modal closes first
@@ -192,6 +217,7 @@ function App() {
                 <MoodGrid
                   onMoodSelect={handleMoodSelect}
                   selectedPosition={selectedMood}
+                  selectionDotPosition={selectionDotPosition}
                 />
                 <QuickMoodButtons onMoodSelect={handleMoodSelect} />
               </div>
@@ -203,6 +229,33 @@ function App() {
                 />
               </div>
             </div>
+            <QuadrantTrendsChart entries={entries} />
+            <RecentReflections moodHistory={moodHistoryList} />
+            <TimeOfDayPatterns moodHistory={moodHistoryList} />
+            {moodHistoryList.length > 0 && (
+              <div className="mt-8 max-w-2xl mx-auto">
+                <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Recent check-ins</h3>
+                <ul className="flex flex-wrap gap-2">
+                  {[...moodHistoryList].reverse().map((entry, index) => (
+                    <li
+                      key={`${entry.date}-${entry.time}-${index}`}
+                      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-gray-100 dark:bg-gray-800 text-xs text-gray-700 dark:text-gray-300"
+                    >
+                      <span className={`capitalize font-medium ${
+                        entry.quadrant === 'red' ? 'text-red-600 dark:text-red-400' :
+                        entry.quadrant === 'blue' ? 'text-blue-600 dark:text-blue-400' :
+                        entry.quadrant === 'yellow' ? 'text-amber-600 dark:text-amber-400' :
+                        'text-emerald-600 dark:text-emerald-400'
+                      }`}>
+                        {entry.quadrant}
+                      </span>
+                      <span className="text-gray-500 dark:text-gray-400">{entry.time}</span>
+                      <span className="text-gray-400 dark:text-gray-500">{entry.date}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
           </div>
         )}
 
@@ -233,6 +286,11 @@ function App() {
           <Settings
             onPreferencesChange={handlePreferencesChange}
             onDataChange={loadEntries}
+            onClearAllMoodData={() => {
+              setSelectionDotPosition(null);
+              setMoodHistoryList(getMoodHistory());
+              loadEntries();
+            }}
           />
         )}
       </main>
@@ -269,6 +327,11 @@ function App() {
         onClose={() => {
           setShowShiftCard(false);
           setShiftCardQuadrant(null);
+          setSelectionDotPosition(null); /* Remove dot when shift card is closed */
+        }}
+        onSaveNote={(note) => {
+          updateLastMoodHistoryNote(note);
+          setMoodHistoryList(getMoodHistory());
         }}
       />
 

@@ -1,11 +1,15 @@
-import { useState, useEffect } from 'react';
-import { Download, Upload, Trash2, Moon, Sun, Bell, Save } from 'lucide-react';
-import { getUserPreferences, saveUserPreferences, deleteAllMoodEntries, getMoodEntries } from '../utils/storage';
+import { useState, useEffect, useRef } from 'react';
+import { Download, Upload, Trash2, Moon, Sun, Bell } from 'lucide-react';
+import { getUserPreferences, saveUserPreferences, clearAllMoodData, getMoodEntries, getMoodHistory } from '../utils/storage';
 import { exportToCSV, exportToJSON, importFromJSON } from '../utils/exportUtils';
 
-export default function Settings({ onPreferencesChange, onDataChange }) {
+const CLEAR_RESET_MS = 3000;
+
+export default function Settings({ onPreferencesChange, onDataChange, onClearAllMoodData }) {
   const [preferences, setPreferences] = useState(getUserPreferences());
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [clearStage, setClearStage] = useState(0);
+  const clearTimerRef = useRef(null);
   const [importError, setImportError] = useState('');
 
   useEffect(() => {
@@ -54,11 +58,70 @@ export default function Settings({ onPreferencesChange, onDataChange }) {
 
   const handleDeleteAll = () => {
     if (window.confirm('Are you absolutely sure? This will delete ALL your mood entries and cannot be undone.')) {
-      deleteAllMoodEntries();
+      clearAllMoodData();
+      onClearAllMoodData?.();
       onDataChange();
       setShowDeleteConfirm(false);
       alert('All data has been deleted');
     }
+  };
+
+  const resetClearButton = () => {
+    setClearStage(0);
+    if (clearTimerRef.current) {
+      clearTimeout(clearTimerRef.current);
+      clearTimerRef.current = null;
+    }
+  };
+
+  const confirmClearData = () => {
+    if (clearStage === 0) {
+      setClearStage(1);
+      clearTimerRef.current = setTimeout(resetClearButton, CLEAR_RESET_MS);
+    } else {
+      clearAllMoodData();
+      onClearAllMoodData?.();
+      onDataChange();
+      resetClearButton();
+      alert('All data has been successfully deleted.');
+    }
+  };
+
+  const getQuadrantDescription = (q) => {
+    const desc = {
+      red: 'High Energy / Unpleasant',
+      yellow: 'High Energy / Pleasant',
+      blue: 'Low Energy / Unpleasant',
+      green: 'Low Energy / Pleasant',
+    };
+    return desc[q] ?? 'Unknown';
+  };
+
+  const downloadMoodHistory = () => {
+    const history = getMoodHistory();
+    if (history.length === 0) {
+      alert('No data found to download. Start logging your mood first!');
+      return;
+    }
+    const escapeCsv = (s) => (s == null ? '' : `"${String(s).replace(/"/g, '""')}"`);
+    let csvContent = 'Date,Time,Quadrant,Energy/Pleasantness,Note\n';
+    history.forEach((item) => {
+      const date = item.date ?? '';
+      const time = item.time ?? '';
+      const quadrant = item.quadrant ?? '';
+      const quadrantInfo = getQuadrantDescription(quadrant);
+      const note = item.note != null ? String(item.note).replace(/,/g, ' ') : '';
+      csvContent += `${escapeCsv(date)},${escapeCsv(time)},${escapeCsv(quadrant)},${escapeCsv(quadrantInfo)},${escapeCsv(note)}\n`;
+    });
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', `my_mood_history_${new Date().toISOString().slice(0, 10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
   };
 
   return (
@@ -212,7 +275,7 @@ export default function Settings({ onPreferencesChange, onDataChange }) {
         </div>
       </div>
 
-      {/* Delete All Data */}
+      {/* Delete All Data - two-step confirm */}
       <div className="bg-white dark:bg-gray-800 p-6 rounded-lg border border-red-200 dark:border-red-900/30">
         <h3 className="text-lg font-semibold text-red-900 dark:text-red-300 mb-4">
           Danger Zone
@@ -246,6 +309,36 @@ export default function Settings({ onPreferencesChange, onDataChange }) {
             </div>
           </div>
         )}
+      </div>
+
+      {/* Data Management: Download CSV + Clear All Mood Data */}
+      <div className="settings-section mt-10 pt-6 border-t border-gray-200 dark:border-gray-600 text-center">
+        <div className="data-actions flex flex-wrap justify-center gap-3 mb-4">
+          <button
+            id="downloadBtn"
+            type="button"
+            onClick={downloadMoodHistory}
+            className="secondary-btn flex items-center justify-center gap-2 px-5 py-2.5 rounded-lg font-semibold cursor-pointer transition-all duration-200 bg-slate-100 dark:bg-gray-700 text-slate-800 dark:text-slate-200 border border-slate-300 dark:border-gray-600 hover:bg-slate-200 dark:hover:bg-gray-600"
+          >
+            <Download className="w-4 h-4" />
+            Download My History (CSV)
+          </button>
+          <button
+            id="clearDataBtn"
+            type="button"
+            onClick={confirmClearData}
+            className={`danger-btn w-full sm:w-auto px-5 py-2.5 rounded-lg font-semibold cursor-pointer transition-all duration-200 border-2 ${
+              clearStage === 1
+                ? 'bg-red-600 text-white border-red-600 hover:bg-red-700'
+                : 'bg-white dark:bg-gray-800 text-red-600 dark:text-red-400 border-red-600 dark:border-red-500 hover:bg-red-50 dark:hover:bg-red-900/20'
+            }`}
+          >
+            {clearStage === 0 ? 'Clear All Mood Data' : 'Are you sure? Click again to wipe data.'}
+          </button>
+        </div>
+        <p className="settings-note text-xs text-slate-400 dark:text-slate-500">
+          CSV opens in Excel or Google Sheets. Clearing data permanently deletes your history and resets trends.
+        </p>
       </div>
     </div>
   );

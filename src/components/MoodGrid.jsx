@@ -29,7 +29,7 @@ const EMOTION_WORDS = {
   ],
 };
 
-export default function MoodGrid({ onMoodSelect, selectedPosition }) {
+export default function MoodGrid({ onMoodSelect, selectedPosition, selectionDotPosition }) {
   const [hoverPosition, setHoverPosition] = useState(null);
   const [isHovering, setIsHovering] = useState(false);
   const [tooltipPosition, setTooltipPosition] = useState({ showBelow: true, left: true });
@@ -111,6 +111,16 @@ export default function MoodGrid({ onMoodSelect, selectedPosition }) {
   return (
     <div className="relative flex justify-center items-center w-full" id="moodGridContainer">
       <div className="relative inline-block">
+        {/* Selection dot: div overlay at last clicked position (persists until new mood or shift card closed) */}
+        {selectionDotPosition && (
+          <div
+            id="selectionDot"
+            style={{
+              left: `calc(${(selectionDotPosition.x / GRID_SIZE) * 100}% - 7px)`,
+              top: `calc(${(selectionDotPosition.y / GRID_SIZE) * 100}% - 7px)`,
+            }}
+          />
+        )}
         <svg
           width={GRID_SIZE}
           height={GRID_SIZE}
@@ -187,36 +197,32 @@ export default function MoodGrid({ onMoodSelect, selectedPosition }) {
             ))
           )}
 
-          {/* Selection dot (where user clicked) + hover indicator */}
-          {displayPosition && (
+          {/* Hover indicator only (selection dot is a separate div overlay) */}
+          {isHovering && hoverPosition && (
             <>
               <circle
-                id="selectionDot"
-                cx={displayPosition.x}
-                cy={displayPosition.y}
-                r={isHovering ? "10" : "6"}
-                fill={isHovering ? getQuadrantColor(displayPosition.quadrant) : "white"}
-                stroke={isHovering ? "white" : "black"}
-                strokeWidth={isHovering ? "2" : "2"}
+                cx={hoverPosition.x}
+                cy={hoverPosition.y}
+                r="10"
+                fill={getQuadrantColor(hoverPosition.quadrant)}
+                stroke="white"
+                strokeWidth="2"
                 className="pointer-events-none transition-all"
                 style={{
-                  opacity: isHovering ? 0.8 : 1,
-                  filter: isHovering ? 'drop-shadow(0 0 8px rgba(0,0,0,0.3))' : 'none',
+                  opacity: 0.8,
+                  filter: 'drop-shadow(0 0 8px rgba(0,0,0,0.3))',
                 }}
               />
-              {/* Pulse animation for hover */}
-              {isHovering && (
-                <circle
-                  cx={displayPosition.x}
-                  cy={displayPosition.y}
-                  r="15"
-                  fill="none"
-                  stroke={getQuadrantColor(displayPosition.quadrant)}
-                  strokeWidth="2"
-                  opacity="0.4"
-                  className="pointer-events-none animate-pulse-slow"
-                />
-              )}
+              <circle
+                cx={hoverPosition.x}
+                cy={hoverPosition.y}
+                r="15"
+                fill="none"
+                stroke={getQuadrantColor(hoverPosition.quadrant)}
+                strokeWidth="2"
+                opacity="0.4"
+                className="pointer-events-none animate-pulse-slow"
+              />
             </>
           )}
         </svg>
