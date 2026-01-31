@@ -32,6 +32,7 @@ import {
   markOnboardingSeen,
   getLastMood,
   setLastMood,
+  clearLastMood,
   getMoodHistory,
   addToMoodHistory,
   updateLastMoodHistoryNote,
@@ -222,6 +223,16 @@ function App() {
     setShowOnboarding(false);
   }, []);
 
+  const handleResetSelection = useCallback(() => {
+    setSelectionDotPosition(null);
+    setShowShiftCard(false);
+    setShiftCardQuadrant(null);
+    setSnappedEmotionWord(null);
+    setSelectedMood(null);
+    setModalOpen(false);
+    clearLastMood();
+  }, []);
+
   // Main app content
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col">
@@ -240,6 +251,7 @@ function App() {
                   selectedPosition={selectedMood}
                   selectionDotPosition={selectionDotPosition}
                   snappedEmotionWord={snappedEmotionWord}
+                  onResetSelection={handleResetSelection}
                 />
                 <QuickMoodButtons onMoodSelect={handleMoodSelect} />
               </div>

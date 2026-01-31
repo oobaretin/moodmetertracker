@@ -52,7 +52,7 @@ function findSnappedEmotion(nx, ny) {
   return closest;
 }
 
-export default function MoodGrid({ onMoodSelect, selectedPosition, selectionDotPosition, snappedEmotionWord }) {
+export default function MoodGrid({ onMoodSelect, selectedPosition, selectionDotPosition, snappedEmotionWord, onResetSelection }) {
   const [hoverPosition, setHoverPosition] = useState(null);
   const [isHovering, setIsHovering] = useState(false);
   const [tooltipPosition, setTooltipPosition] = useState({ showBelow: true, left: true });
@@ -353,6 +353,21 @@ export default function MoodGrid({ onMoodSelect, selectedPosition, selectionDotP
           'Click anywhere on the grid to log your mood'
         )}
       </div>
+
+      {(selectionDotPosition || snappedEmotionWord) && (
+        <div className="mt-3 flex justify-center">
+          <button
+            type="button"
+            id="resetBtn"
+            className="reset-btn"
+            onClick={onResetSelection}
+            aria-label="Reset selection"
+          >
+            <span className="icon" aria-hidden="true">↺</span>
+            Reset Selection
+          </button>
+        </div>
+      )}
     </div>
   );
 }

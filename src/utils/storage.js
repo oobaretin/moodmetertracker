@@ -138,6 +138,18 @@ export function setLastMood(entry) {
   }
 }
 
+/**
+ * Clear last mood (e.g. when user clicks "Reset Selection").
+ */
+export function clearLastMood() {
+  try {
+    if (typeof localStorage === 'undefined') return;
+    localStorage.removeItem(STORAGE_KEYS.LAST_MOOD);
+  } catch (error) {
+    console.error('Error clearing last mood:', error);
+  }
+}
+
 const MOOD_HISTORY_MAX = 10;
 
 /**

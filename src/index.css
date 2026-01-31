@@ -260,3 +260,38 @@
   background: #475569;
 }
 
+/* Reset Selection: subtle, below mood grid */
+.reset-btn {
+  margin-top: 15px;
+  background: transparent;
+  color: #64748b;
+  border: 1px solid #e2e8f0;
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.reset-btn:hover {
+  background: #f1f5f9;
+  color: #0f172a;
+  border-color: #cbd5e1;
+}
+
+.dark .reset-btn {
+  border-color: #334155;
+  color: #94a3b8;
+}
+
+.dark .reset-btn:hover {
+  background: #334155;
+  color: #f1f5f9;
+  border-color: #475569;
+}
+
