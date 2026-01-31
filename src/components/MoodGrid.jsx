@@ -1,60 +1,43 @@
 import { useCallback, useMemo, useState } from 'react';
-import { getQuadrant, calculateEnergy, calculatePleasantness, getEmotionWords, getQuadrantColor, getQuadrantLabel } from '../utils/moodUtils';
+import { getQuadrant, calculateEnergy, calculatePleasantness, getQuadrantColor, getQuadrantLabel } from '../utils/moodUtils';
 
 const GRID_SIZE = 450; // Increased size for better visibility
 
-/** Normalized (0–1) coordinates for magnetic snap; x=0.5, y=0.5 is center crosshair. */
-const EMOTION_COORDINATES = [
-  // RED: High Energy / Unpleasant (Top Left)
-  { name: 'stressed', x: 0.35, y: 0.15 },
-  { name: 'angry', x: 0.28, y: 0.18 },
-  { name: 'frustrated', x: 0.38, y: 0.22 },
-  { name: 'anxious', x: 0.25, y: 0.26 },
-  // YELLOW: High Energy / Pleasant (Top Right)
-  { name: 'happy', x: 0.72, y: 0.14 },
-  { name: 'joyful', x: 0.68, y: 0.17 },
-  { name: 'energized', x: 0.67, y: 0.21 },
-  { name: 'excited', x: 0.75, y: 0.25 },
-  // BLUE: Low Energy / Unpleasant (Bottom Left)
-  { name: 'depressed', x: 0.33, y: 0.72 },
-  { name: 'sad', x: 0.26, y: 0.75 },
-  { name: 'lonely', x: 0.34, y: 0.78 },
-  { name: 'tired', x: 0.22, y: 0.82 },
-  // GREEN: Low Energy / Pleasant (Bottom Right)
-  { name: 'content', x: 0.73, y: 0.71 },
-  { name: 'calm', x: 0.66, y: 0.75 },
-  { name: 'peaceful', x: 0.78, y: 0.79 },
-  { name: 'relaxed', x: 0.65, y: 0.83 },
+/**
+ * Emotion label positions: Quadrant, Emotion, Left (%), Top (%)
+ * RED: stressed 30,15 | angry 22,19 | frustrated 38,23 | anxious 18,28
+ * YELLOW: happy 75,15 | joyful 68,19 | energized 65,24 | excited 82,26
+ * BLUE: depressed 35,72 | sad 25,76 | lonely 36,81 | tired 20,84
+ * GREEN: content 75,72 | calm 66,76 | peaceful 82,80 | relaxed 68,85
+ */
+const EMOTION_LABELS = [
+  { name: 'stressed', left: 30, top: 15 },
+  { name: 'angry', left: 22, top: 19 },
+  { name: 'frustrated', left: 38, top: 23 },
+  { name: 'anxious', left: 18, top: 28 },
+  { name: 'happy', left: 75, top: 15 },
+  { name: 'joyful', left: 68, top: 19 },
+  { name: 'energized', left: 65, top: 24 },
+  { name: 'excited', left: 82, top: 26 },
+  { name: 'depressed', left: 35, top: 72 },
+  { name: 'sad', left: 25, top: 76 },
+  { name: 'lonely', left: 36, top: 81 },
+  { name: 'tired', left: 20, top: 84 },
+  { name: 'content', left: 75, top: 72 },
+  { name: 'calm', left: 66, top: 76 },
+  { name: 'peaceful', left: 82, top: 80 },
+  { name: 'relaxed', left: 68, top: 85 },
 ];
 
-const SNAP_THRESHOLD = 0.04;
+/** Slightly larger for spaced-out labels; snap lands dot in center of word (translate -50%, -50%). */
+const SNAP_THRESHOLD = 0.06;
 
-const EMOTION_WORDS = {
-  yellow: [
-    { word: 'joyful', x: 342, y: 72 },
-    { word: 'excited', x: 378, y: 108 },
-    { word: 'energized', x: 324, y: 90 },
-    { word: 'happy', x: 360, y: 54 },
-  ],
-  red: [
-    { word: 'angry', x: 72, y: 72 },
-    { word: 'frustrated', x: 108, y: 90 },
-    { word: 'anxious', x: 54, y: 108 },
-    { word: 'stressed', x: 90, y: 54 },
-  ],
-  blue: [
-    { word: 'sad', x: 72, y: 342 },
-    { word: 'lonely', x: 108, y: 360 },
-    { word: 'tired', x: 54, y: 378 },
-    { word: 'depressed', x: 90, y: 324 },
-  ],
-  green: [
-    { word: 'calm', x: 342, y: 342 },
-    { word: 'peaceful', x: 378, y: 360 },
-    { word: 'relaxed', x: 324, y: 378 },
-    { word: 'content', x: 360, y: 324 },
-  ],
-};
+/** Magnetic snap: x,y as decimals (0–1), 1:1 with label left/top %. Center-point logic matches CSS. */
+const EMOTION_COORDINATES = EMOTION_LABELS.map(({ name, left, top }) => ({
+  name,
+  x: left / 100,
+  y: top / 100,
+}));
 
 function findSnappedEmotion(nx, ny) {
   let closest = null;
@@ -135,6 +118,15 @@ export default function MoodGrid({ onMoodSelect, selectedPosition, selectionDotP
     setHoverPosition(null);
   }, []);
 
+  const handleLabelClick = useCallback((emotion) => {
+    const x = (emotion.left / 100) * GRID_SIZE;
+    const y = (emotion.top / 100) * GRID_SIZE;
+    const quadrant = getQuadrant(x, y);
+    const energy = calculateEnergy(y);
+    const pleasantness = calculatePleasantness(x);
+    onMoodSelect({ x, y, quadrant, energy, pleasantness, snappedWord: emotion.name });
+  }, [onMoodSelect]);
+
   const handleTouchStart = useCallback((e) => {
     e.preventDefault();
     const touch = e.touches[0];
@@ -179,6 +171,7 @@ export default function MoodGrid({ onMoodSelect, selectedPosition, selectionDotP
             }}
           />
         )}
+        <div className="relative inline-block" style={{ display: 'inline-block' }}>
         <svg
           width={GRID_SIZE}
           height={GRID_SIZE}
@@ -240,24 +233,6 @@ export default function MoodGrid({ onMoodSelect, selectedPosition, selectionDotP
             PLEASANT
           </text>
 
-          {/* Emotion words: active-snap class for pro-grade snap highlight */}
-          {Object.entries(EMOTION_WORDS).map(([quadrant, words]) =>
-            words.map(({ word, x, y }) => {
-              const isSnapped = snappedEmotionWord && word.toLowerCase() === snappedEmotionWord.toLowerCase();
-              return (
-                <text
-                  key={`${quadrant}-${word}`}
-                  x={x}
-                  y={y}
-                  className={`emotion-label text-xs sm:text-sm fill-gray-800 dark:fill-gray-200 ${isSnapped ? 'active-snap' : ''}`}
-                  style={{ textShadow: '0 1px 2px rgba(255,255,255,0.8)' }}
-                >
-                  {word}
-                </text>
-              );
-            })
-          )}
-
           {/* Hover indicator only (selection dot is a separate div overlay) */}
           {isHovering && hoverPosition && (
             <>
@@ -287,6 +262,38 @@ export default function MoodGrid({ onMoodSelect, selectedPosition, selectionDotP
             </>
           )}
         </svg>
+
+        {/* Emotion labels: fixed-center overlay (translate -50%, -50%) so no overlap/shake */}
+        <div className="emotion-labels-overlay absolute inset-0 pointer-events-none" aria-hidden="true">
+          {EMOTION_LABELS.map((emotion) => {
+            const isSnapped = snappedEmotionWord && emotion.name.toLowerCase() === snappedEmotionWord.toLowerCase();
+            return (
+              <span
+                key={emotion.name}
+                className={`emotion-label ${isSnapped ? 'active-snap' : ''}`}
+                style={{ left: `${emotion.left}%`, top: `${emotion.top}%` }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  e.preventDefault();
+                  handleLabelClick(emotion);
+                }}
+                onPointerDown={(e) => e.stopPropagation()}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    handleLabelClick(emotion);
+                  }
+                }}
+                aria-label={`Log mood: ${emotion.name}`}
+              >
+                {emotion.name}
+              </span>
+            );
+          })}
+        </div>
+        </div>
 
         {/* Hover tooltip - glassmorphism so quadrant gradients peek through */}
         {isHovering && hoverPosition && (

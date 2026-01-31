@@ -123,12 +123,11 @@
 }
 
 .dark .emotion-label {
-  fill: #cbd5e1;
-  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+  color: #94a3b8;
 }
 
 .dark .emotion-label:hover {
-  fill: #f1f5f9;
+  color: #ffffff;
 }
 
 .dark #selectionDot {
@@ -137,24 +136,36 @@
   box-shadow: 0 0 15px rgba(255, 255, 255, 0.3);
 }
 
-/* Emotion labels: hover polish + pro-grade snap highlight (active-snap) */
+/* Emotion labels: fixed-center (translate -50%, -50%) so no overlap/shake; scale from center on hover */
+.emotion-labels-overlay .emotion-label {
+  pointer-events: auto;
+}
+
 .emotion-label {
-  transition: all 0.3s ease;
-  opacity: 0.8;
+  position: absolute;
+  transform: translate(-50%, -50%);
+  transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275), color 0.2s ease;
   cursor: pointer;
-  transform-origin: center;
+  font-size: 14px;
+  color: #475569;
+  white-space: nowrap;
+  z-index: 1;
+  pointer-events: auto;
 }
 
 .emotion-label:hover {
-  transform: scale(1.1);
-  fill: #000;
+  transform: translate(-50%, -50%) scale(1.2);
+  z-index: 20;
+  color: #000000;
+  font-weight: 600;
 }
 
 .emotion-label.active-snap {
   opacity: 1;
   font-weight: 800;
-  transform: scale(1.15);
+  transform: translate(-50%, -50%) scale(1.15);
   text-shadow: 0 0 10px rgba(255, 255, 255, 0.8);
+  z-index: 20;
 }
 
 /* Night Shift (9 PM–5 AM): moonlight glow on Shift Card in dark mode */
