@@ -1,8 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
+
+const BREATH_LABELS = { idle: 'Click to Start', inhale: 'Inhale...', hold: 'Hold...', exhale: 'Exhale...' };
 
 /**
- * Shift Card – modal-style card with quadrant-specific strategies and optional note.
- * Structure: shiftCard, cardBadge, cardTitle, cardDesc, action items, note section, "I feel better".
+ * Shift Card – modal-style card with quadrant-specific strategies, 4-7-8 breathing pacer, optional note.
+ * Structure: shiftCard, cardBadge, cardTitle, cardDesc, action items (with breathing inside 4-7-8), note, "I feel better".
  * Shown after "Yes, help me shift" from mood prompt.
  */
 
@@ -59,10 +61,72 @@ const BADGE_CLASSES = {
 
 export default function ShiftCard({ isOpen, onClose, quadrant, onSaveNote }) {
   const [moodNote, setMoodNote] = useState('');
+  const [breathPhase, setBreathPhase] = useState('idle');
+  const [breathScale, setBreathScale] = useState(1);
+  const [breathOpacity, setBreathOpacity] = useState(0.6);
+  const [breathTransition, setBreathTransition] = useState('all 1s linear');
+  const [isBreathingActive, setIsBreathingActive] = useState(false);
+  const [hapticEnabled, setHapticEnabled] = useState(true);
+  const breathTimeoutRef = useRef(null);
+
+  const pulse = () => {
+    if (hapticEnabled && typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+      navigator.vibrate(60);
+    }
+  };
 
   useEffect(() => {
-    if (!isOpen) setMoodNote('');
+    if (!isOpen) {
+      setMoodNote('');
+      setIsBreathingActive(false);
+      setBreathPhase('idle');
+      setBreathScale(1);
+      setBreathOpacity(0.6);
+      setBreathTransition('all 1s linear');
+      if (breathTimeoutRef.current) {
+        clearTimeout(breathTimeoutRef.current);
+        breathTimeoutRef.current = null;
+      }
+    }
   }, [isOpen]);
+
+  const runBreathStep = (phase) => {
+    if (phase === 'inhale') {
+      pulse();
+      setBreathPhase('inhale');
+      setBreathTransition('all 4s ease-in-out');
+      setBreathScale(2.5);
+      setBreathOpacity(1);
+      breathTimeoutRef.current = setTimeout(() => runBreathStep('hold'), 4000);
+    } else if (phase === 'hold') {
+      pulse();
+      setBreathPhase('hold');
+      setBreathTransition('none');
+      breathTimeoutRef.current = setTimeout(() => runBreathStep('exhale'), 7000);
+    } else if (phase === 'exhale') {
+      pulse();
+      setBreathPhase('exhale');
+      setBreathTransition('all 8s ease-in-out');
+      setBreathScale(1);
+      setBreathOpacity(0.6);
+      breathTimeoutRef.current = setTimeout(() => runBreathStep('inhale'), 8000);
+    }
+  };
+
+  const startBreathing = () => {
+    if (isBreathingActive) return;
+    setIsBreathingActive(true);
+    runBreathStep('inhale');
+  };
+
+  useEffect(() => {
+    return () => {
+      if (breathTimeoutRef.current) {
+        clearTimeout(breathTimeoutRef.current);
+        breathTimeoutRef.current = null;
+      }
+    };
+  }, []);
 
   if (!isOpen || !quadrant) return null;
 
@@ -110,17 +174,52 @@ export default function ShiftCard({ isOpen, onClose, quadrant, onSaveNote }) {
         </p>
 
         <div className="space-y-3 mb-4">
-          <div className="action-item flex gap-4 bg-[#f8fafc] dark:bg-gray-700/50 p-3 rounded-[12px] border border-[#e2e8f0] dark:border-gray-600">
+          <div className="action-item flex flex-col sm:flex-row gap-4 bg-[#f8fafc] dark:bg-gray-700/50 p-3 rounded-[12px] border border-[#e2e8f0] dark:border-gray-600">
             <div id="icon1" className="icon text-2xl flex-shrink-0" aria-hidden="true">
               {data.actions[0].icon}
             </div>
-            <div className="content">
+            <div className="content flex-1 min-w-0">
               <strong id="title1" className="text-gray-900 dark:text-white block text-sm">
                 {data.actions[0].title}
               </strong>
               <p id="text1" className="text-sm text-gray-600 dark:text-gray-400 mt-0.5">
                 {data.actions[0].text}
               </p>
+              {data.actions[0].title === '4-7-8 Breath' && (
+                <div
+                  className="breathing-container flex flex-col items-center justify-center py-5 mt-3 bg-slate-100 dark:bg-gray-600/50 rounded-xl cursor-pointer"
+                  role="button"
+                  tabIndex={0}
+                  onClick={breathPhase === 'idle' ? startBreathing : undefined}
+                  onKeyDown={(e) => breathPhase === 'idle' && (e.key === 'Enter' || e.key === ' ') && startBreathing()}
+                  aria-label={breathPhase === 'idle' ? 'Start 4-7-8 breathing' : undefined}
+                >
+                  <div
+                    id="breathingCircle"
+                    className="breath-circle breath-circle-heartbeat w-[60px] h-[60px] rounded-full bg-blue-500 shadow-lg"
+                    style={{
+                      transform: `scale(${breathScale})`,
+                      opacity: breathOpacity,
+                      transition: breathTransition,
+                    }}
+                  />
+                  <div id="breathLabel" className="breath-label mt-3 text-sm font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider">
+                    {BREATH_LABELS[breathPhase]}
+                  </div>
+                  <div className="haptic-toggle mt-3 flex items-center justify-center gap-2">
+                    <input
+                      type="checkbox"
+                      id="vibrateToggle"
+                      checked={hapticEnabled}
+                      onChange={(e) => setHapticEnabled(e.target.checked)}
+                      className="rounded border-slate-300 dark:border-slate-500 text-blue-500 focus:ring-blue-500"
+                    />
+                    <label htmlFor="vibrateToggle" className="text-xs font-medium text-slate-600 dark:text-slate-400 cursor-pointer select-none">
+                      📳 Haptic Guidance
+                    </label>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
           <div className="action-item flex gap-4 bg-[#f8fafc] dark:bg-gray-700/50 p-3 rounded-[12px] border border-[#e2e8f0] dark:border-gray-600">
