@@ -18,6 +18,7 @@ import TimeOfDayPatterns from './components/TimeOfDayPatterns';
 import RecentReflections from './components/RecentReflections';
 import Footer from './components/Footer';
 import { ToastContainer } from './components/Toast';
+import BottomToast from './components/BottomToast';
 import Celebration from './components/Celebration';
 import {
   getMoodEntries,
@@ -49,6 +50,7 @@ function App() {
   const [selectedMood, setSelectedMood] = useState(null);
   const [editingEntry, setEditingEntry] = useState(null);
   const [toasts, setToasts] = useState([]);
+  const [bottomToastMessage, setBottomToastMessage] = useState(null);
   const [celebration, setCelebration] = useState({ show: false, message: '' });
   const [showMoodPrompt, setShowMoodPrompt] = useState(false);
   const [promptQuadrant, setPromptQuadrant] = useState(null);
@@ -150,6 +152,7 @@ function App() {
       setMoodHistoryList(getMoodHistory());
       loadEntries();
       addToast('Mood logged successfully! 🎉', 'success');
+      setBottomToastMessage('Moment captured. Stay mindful! ✨');
       // Show contextual mood prompt after a short delay so entry modal closes first
       setTimeout(() => {
         setPromptQuadrant(moodData.quadrant);
@@ -373,7 +376,16 @@ function App() {
       />
 
       <ToastContainer toasts={toasts} onRemove={removeToast} />
-      
+
+      {/* Bottom-center toast: slides up on mood logged, auto-hides after 3s */}
+      {bottomToastMessage && (
+        <BottomToast
+          message={bottomToastMessage}
+          onHide={() => setBottomToastMessage(null)}
+          duration={3000}
+        />
+      )}
+
       <Celebration
         show={celebration.show}
         message={celebration.message}
