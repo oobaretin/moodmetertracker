@@ -42,6 +42,7 @@ export const STORAGE_KEYS = {
   USER_PREFERENCES: 'user-preferences',
   USER_STATS: 'user-stats',
   HAS_SEEN_WELCOME: 'has-seen-welcome',
+  HAS_SEEN_ONBOARDING: 'has-seen-onboarding',
   LAST_MOOD: 'lastMood',
   MOOD_HISTORY: 'moodHistory',
 };
@@ -324,5 +325,20 @@ export function hasSeenWelcome() {
  */
 export function markWelcomeSeen() {
   setStorageItem(STORAGE_KEYS.HAS_SEEN_WELCOME, true);
+}
+
+/**
+ * Check if user has seen the grid onboarding overlay
+ * @returns {boolean}
+ */
+export function hasSeenOnboarding() {
+  return getStorageItem(STORAGE_KEYS.HAS_SEEN_ONBOARDING) || false;
+}
+
+/**
+ * Mark onboarding overlay as seen (one-time only)
+ */
+export function markOnboardingSeen() {
+  setStorageItem(STORAGE_KEYS.HAS_SEEN_ONBOARDING, true);
 }
 

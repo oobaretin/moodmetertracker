@@ -1,11 +1,19 @@
 import { useState, useEffect, useRef } from 'react';
 
 const BREATH_LABELS = { idle: 'Click to Start', inhale: 'Inhale...', hold: 'Hold...', exhale: 'Exhale...' };
+const BREATH_LABELS_NIGHT = { idle: 'Tap for Sleep Prep (4-7-8)', inhale: 'Inhale...', hold: 'Hold...', exhale: 'Exhale...' };
+
+/** 9 PM to 5 AM = Night Shift for wind-down / sleep prep. */
+function getTimeContext() {
+  const hour = new Date().getHours();
+  return hour >= 21 || hour < 5;
+}
 
 /**
  * Shift Card – modal-style card with quadrant-specific strategies, 4-7-8 breathing pacer, optional note.
  * Structure: shiftCard, cardBadge, cardTitle, cardDesc, action items (with breathing inside 4-7-8), note, "I feel better".
  * Shown after "Yes, help me shift" from mood prompt.
+ * After 9 PM or before 5 AM: "Night Shift" wind-down content (dim lights, digital sunset, gratitude note).
  */
 
 const shiftData = {
@@ -51,12 +59,25 @@ const shiftData = {
   },
 };
 
+/** Night Shift (9 PM–5 AM): wind-down, sleep prep, gratitude. */
+const nightShiftData = {
+  name: 'Night Shift',
+  class: 'night-shift',
+  title: '🌙 Nightly Wind-Down',
+  desc: 'Digital Sunset: Put the phone away after this log. Below, write one thing that went well today.',
+  actions: [
+    { icon: '🌙', title: '4-7-8 Breath', text: 'Natural tranquilizer. Inhale 4s, hold 7s, exhale 8s.' },
+    { icon: '💡', title: 'Dim the Lights', text: "Signal to your brain that it's time for melatonin." },
+  ],
+};
+
 // Badge colors: .red-quadrant, .blue-quadrant, etc.
 const BADGE_CLASSES = {
   red: 'bg-[#fee2e2] text-[#dc2626] dark:bg-red-900/30 dark:text-red-300',
   blue: 'bg-[#dbeafe] text-[#2563eb] dark:bg-blue-900/30 dark:text-blue-300',
   yellow: 'bg-[#fef9c3] text-[#ca8a04] dark:bg-amber-900/30 dark:text-amber-300',
   green: 'bg-[#dcfce7] text-[#16a34a] dark:bg-emerald-900/30 dark:text-emerald-300',
+  night: 'bg-slate-200 text-slate-800 dark:bg-slate-600/50 dark:text-slate-200',
 };
 
 function parseTimestamp(entry) {
@@ -101,25 +122,29 @@ export default function ShiftCard({ isOpen, onClose, quadrant, onSaveNote, moodH
   }, [isOpen, initialNote]);
 
   const runBreathStep = (phase) => {
+    const isNightBreath = getTimeContext();
+    const inhaleMs = isNightBreath ? 4400 : 4000;
+    const holdMs = isNightBreath ? 7700 : 7000;
+    const exhaleMs = isNightBreath ? 8800 : 8000;
     if (phase === 'inhale') {
       pulse();
       setBreathPhase('inhale');
-      setBreathTransition('all 4s ease-in-out');
+      setBreathTransition(`all ${inhaleMs / 1000}s ease-in-out`);
       setBreathScale(2.5);
       setBreathOpacity(1);
-      breathTimeoutRef.current = setTimeout(() => runBreathStep('hold'), 4000);
+      breathTimeoutRef.current = setTimeout(() => runBreathStep('hold'), inhaleMs);
     } else if (phase === 'hold') {
       pulse();
       setBreathPhase('hold');
       setBreathTransition('none');
-      breathTimeoutRef.current = setTimeout(() => runBreathStep('exhale'), 7000);
+      breathTimeoutRef.current = setTimeout(() => runBreathStep('exhale'), holdMs);
     } else if (phase === 'exhale') {
       pulse();
       setBreathPhase('exhale');
-      setBreathTransition('all 8s ease-in-out');
+      setBreathTransition(`all ${exhaleMs / 1000}s ease-in-out`);
       setBreathScale(1);
       setBreathOpacity(0.6);
-      breathTimeoutRef.current = setTimeout(() => runBreathStep('inhale'), 8000);
+      breathTimeoutRef.current = setTimeout(() => runBreathStep('inhale'), exhaleMs);
     }
   };
 
@@ -154,8 +179,10 @@ export default function ShiftCard({ isOpen, onClose, quadrant, onSaveNote, moodH
 
   if (!isOpen || !quadrant) return null;
 
-  const data = shiftData[quadrant] || shiftData.red;
-  const badgeClass = BADGE_CLASSES[quadrant] || BADGE_CLASSES.red;
+  const isNight = getTimeContext();
+  const data = isNight ? nightShiftData : (shiftData[quadrant] || shiftData.red);
+  const badgeClass = isNight ? BADGE_CLASSES.night : (BADGE_CLASSES[quadrant] || BADGE_CLASSES.red);
+  const breathLabels = isNight ? BREATH_LABELS_NIGHT : BREATH_LABELS;
 
   const handleSaveAndClose = () => {
     onSaveNote?.(moodNote);
@@ -171,7 +198,7 @@ export default function ShiftCard({ isOpen, onClose, quadrant, onSaveNote, moodH
       />
       <div
         id="shiftCard"
-        className="shift-card fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[90%] max-w-[400px] bg-white/95 dark:bg-gray-800/95 backdrop-blur-[10px] rounded-[20px] p-6 shadow-[0_20px_40px_rgba(0,0,0,0.2)] z-[1000] font-sans animate-shift-card-in"
+        className={`shift-card fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[90%] max-w-[400px] bg-white/95 dark:bg-gray-800/95 backdrop-blur-[10px] rounded-[20px] p-6 shadow-[0_20px_40px_rgba(0,0,0,0.2)] z-[1000] font-sans animate-shift-card-in ${isNight ? 'night-active' : ''}`}
         role="dialog"
         aria-modal="true"
         aria-labelledby="cardTitle"
@@ -228,7 +255,7 @@ export default function ShiftCard({ isOpen, onClose, quadrant, onSaveNote, moodH
                     }}
                   />
                   <div id="breathLabel" className="breath-label mt-3 text-sm font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider">
-                    {BREATH_LABELS[breathPhase]}
+                    {breathLabels[breathPhase]}
                   </div>
                   <div className="haptic-toggle mt-3 flex items-center justify-center gap-2">
                     <input
@@ -263,13 +290,13 @@ export default function ShiftCard({ isOpen, onClose, quadrant, onSaveNote, moodH
 
         <div className="note-section mt-4 pt-4 border-t border-slate-200 dark:border-gray-600 text-left">
           <label htmlFor="moodNote" className="block text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase mb-1">
-            What&apos;s on your mind? (Optional)
+            {isNight ? 'Gratitude: One thing that went well today (Optional)' : "What's on your mind? (Optional)"}
           </label>
           <textarea
             id="moodNote"
             value={moodNote}
             onChange={(e) => setMoodNote(e.target.value)}
-            placeholder="e.g., Just finished a big project..."
+            placeholder={isNight ? 'e.g., Finished a tough conversation...' : 'e.g., Just finished a big project...'}
             rows={3}
             className="note-input w-full min-h-[60px] p-3 border border-slate-200 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm resize-none outline-none transition-colors focus:border-slate-400 dark:focus:border-gray-500"
           />

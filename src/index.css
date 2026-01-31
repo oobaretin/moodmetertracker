@@ -99,9 +99,42 @@
 }
 
 .dark .tooltip {
-  background: rgba(30, 41, 59, 0.65);
-  border-color: rgba(255, 255, 255, 0.15);
-  color: #e2e8f0;
+  background: rgba(30, 41, 59, 0.7);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #f8fafc;
+}
+
+/* Dark mode grid overrides (when .dark is on html; preference saved in localStorage) */
+.dark body {
+  background-color: #0f172a;
+  color: #f1f5f9;
+}
+
+.dark .mood-grid {
+  border-radius: 0.5rem;
+  /* Twilight: desaturated quadrants for less halo, better contrast with white text */
+  background: linear-gradient(to bottom right, #451a1a, #45451a, #1a2e45, #1a452e);
+}
+
+.dark .mood-grid svg {
+  border-color: #334155;
+}
+
+.dark .emotion-label {
+  fill: #cbd5e1;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+}
+
+.dark .emotion-label:hover {
+  fill: #f1f5f9;
+}
+
+.dark #selectionDot {
+  background: #f8fafc;
+  border-color: #94a3b8;
+  box-shadow: 0 0 15px rgba(255, 255, 255, 0.3);
 }
 
 /* Emotion labels: hover polish + pro-grade snap highlight (active-snap) */
@@ -117,14 +150,102 @@
   fill: #000;
 }
 
-.dark .emotion-label:hover {
-  fill: #f1f5f9;
-}
-
 .emotion-label.active-snap {
   opacity: 1;
   font-weight: 800;
   transform: scale(1.15);
   text-shadow: 0 0 10px rgba(255, 255, 255, 0.8);
+}
+
+/* Night Shift (9 PM–5 AM): moonlight glow on Shift Card in dark mode */
+.dark .shift-card.night-active {
+  box-shadow: 0 0 20px rgba(186, 230, 253, 0.15);
+  border: 1px solid rgba(186, 230, 253, 0.2);
+}
+
+/* Onboarding overlay: one-time grid explanation (glassmorphism, focus) */
+.onboarding-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.onboarding-overlay.hidden {
+  display: none !important;
+}
+
+.onboarding-card {
+  background: rgba(255, 255, 255, 0.9);
+  padding: 30px;
+  border-radius: 20px;
+  max-width: 400px;
+  text-align: center;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
+}
+
+.dark .onboarding-card {
+  background: rgba(30, 41, 59, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.onboarding-steps {
+  text-align: left;
+  margin: 20px 0;
+  background: #f1f5f9;
+  padding: 15px;
+  border-radius: 12px;
+  font-size: 14px;
+}
+
+.dark .onboarding-steps {
+  background: rgba(51, 65, 85, 0.5);
+}
+
+.onboarding-steps .step {
+  margin-bottom: 0.5rem;
+}
+
+.onboarding-steps .step:last-child {
+  margin-bottom: 0;
+}
+
+.quadrant-legend {
+  font-size: 12px;
+  font-weight: bold;
+  line-height: 2;
+  margin-bottom: 20px;
+}
+
+.quadrant-legend span {
+  margin-right: 0.75rem;
+}
+
+.onboarding-overlay .start-btn {
+  background: #1e293b;
+  color: white;
+  border: none;
+  padding: 12px 30px;
+  border-radius: 25px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+
+.onboarding-overlay .start-btn:hover {
+  transform: scale(1.05);
+}
+
+.dark .onboarding-overlay .start-btn {
+  background: #334155;
+}
+
+.dark .onboarding-overlay .start-btn:hover {
+  background: #475569;
 }
 

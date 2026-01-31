@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import Navigation from './components/Navigation';
 import WelcomeScreen from './components/WelcomeScreen';
+import OnboardingOverlay from './components/OnboardingOverlay';
 import MoodGrid from './components/MoodGrid';
 import MoodEntryModal from './components/MoodEntryModal';
 import MoodPromptModal from './components/MoodPromptModal';
@@ -27,6 +28,8 @@ import {
   updateUserStats,
   hasSeenWelcome,
   markWelcomeSeen,
+  hasSeenOnboarding,
+  markOnboardingSeen,
   getLastMood,
   setLastMood,
   getMoodHistory,
@@ -53,6 +56,7 @@ function App() {
   const [selectionDotPosition, setSelectionDotPosition] = useState(null);
   const [snappedEmotionWord, setSnappedEmotionWord] = useState(null);
   const [moodHistoryList, setMoodHistoryList] = useState(() => getMoodHistory());
+  const [showOnboarding, setShowOnboarding] = useState(() => !hasSeenOnboarding());
 
   // Load entries and mood history on mount
   useEffect(() => {
@@ -75,6 +79,13 @@ function App() {
     const hasSeen = hasSeenWelcome();
     if (hasSeen) {
       setShowWelcome(false);
+    }
+  }, []);
+
+  // Sync onboarding visibility with storage (e.g. returning user)
+  useEffect(() => {
+    if (hasSeenOnboarding()) {
+      setShowOnboarding(false);
     }
   }, []);
 
@@ -206,9 +217,17 @@ function App() {
     return <WelcomeScreen onGetStarted={handleGetStarted} />;
   }
 
+  const handleCloseOnboarding = useCallback(() => {
+    markOnboardingSeen();
+    setShowOnboarding(false);
+  }, []);
+
   // Main app content
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col">
+      {showOnboarding && (
+        <OnboardingOverlay onClose={handleCloseOnboarding} />
+      )}
       <Navigation activeTab={activeTab} onTabChange={setActiveTab} />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-1">

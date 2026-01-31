@@ -168,7 +168,7 @@ export default function MoodGrid({ onMoodSelect, selectedPosition, selectionDotP
 
   return (
     <div className="relative flex justify-center items-center w-full" id="moodGridContainer">
-      <div className="relative inline-block">
+      <div className="mood-grid relative inline-block">
         {/* Selection dot: div overlay at last clicked position (persists until new mood or shift card closed) */}
         {selectionDotPosition && (
           <div
