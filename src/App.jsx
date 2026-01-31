@@ -324,6 +324,7 @@ function App() {
       <ShiftCard
         isOpen={showShiftCard}
         quadrant={shiftCardQuadrant}
+        moodHistory={moodHistoryList}
         onClose={() => {
           setShowShiftCard(false);
           setShiftCardQuadrant(null);

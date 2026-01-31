@@ -59,7 +59,15 @@ const BADGE_CLASSES = {
   green: 'bg-[#dcfce7] text-[#16a34a] dark:bg-emerald-900/30 dark:text-emerald-300',
 };
 
-export default function ShiftCard({ isOpen, onClose, quadrant, onSaveNote }) {
+function parseTimestamp(entry) {
+  const ts = entry?.timestamp;
+  if (ts == null) return 0;
+  if (typeof ts === 'number') return ts;
+  const t = new Date(ts).getTime();
+  return Number.isNaN(t) ? 0 : t;
+}
+
+export default function ShiftCard({ isOpen, onClose, quadrant, onSaveNote, moodHistory = [] }) {
   const [moodNote, setMoodNote] = useState('');
   const [breathPhase, setBreathPhase] = useState('idle');
   const [breathScale, setBreathScale] = useState(1);
@@ -127,6 +135,20 @@ export default function ShiftCard({ isOpen, onClose, quadrant, onSaveNote }) {
       }
     };
   }, []);
+
+  const startOfToday = new Date();
+  startOfToday.setHours(0, 0, 0, 0);
+  const startMs = startOfToday.getTime();
+  const toughToday = (moodHistory || []).filter(
+    (e) => parseTimestamp(e) >= startMs && (e.quadrant === 'red' || e.quadrant === 'blue')
+  );
+  const showSafetyAlert = toughToday.length >= 3;
+
+  useEffect(() => {
+    if (showSafetyAlert && isOpen && typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+      navigator.vibrate([100, 50, 100]);
+    }
+  }, [showSafetyAlert, isOpen]);
 
   if (!isOpen || !quadrant) return null;
 
@@ -258,6 +280,25 @@ export default function ShiftCard({ isOpen, onClose, quadrant, onSaveNote }) {
         >
           I feel better
         </button>
+
+        {showSafetyAlert && (
+          <div id="safetyAlert" className="safety-alert mt-5 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl text-center animate-slide-up">
+            <p className="text-sm font-medium text-red-900 dark:text-red-200 mb-1">
+              <strong>You&apos;ve had a tough run today.</strong>
+            </p>
+            <p className="text-sm text-red-800 dark:text-red-300 mb-3">
+              If you need someone to talk to, support is available 24/7.
+            </p>
+            <div className="safety-links flex flex-col gap-2">
+              <a href="tel:988" className="safety-btn block bg-red-700 hover:bg-red-800 text-white no-underline py-2.5 px-4 rounded-lg text-sm font-bold transition-colors">
+                📞 Call 988 (US)
+              </a>
+              <a href="https://www.crisistextline.org/" target="_blank" rel="noopener noreferrer" className="safety-btn block bg-red-700 hover:bg-red-800 text-white no-underline py-2.5 px-4 rounded-lg text-sm font-bold transition-colors">
+                💬 Text HOME to 741741
+              </a>
+            </div>
+          </div>
+        )}
       </div>
     </>
   );
