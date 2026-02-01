@@ -61,11 +61,16 @@ function App() {
   const [moodHistoryList, setMoodHistoryList] = useState(() => getMoodHistory());
   const [showOnboarding, setShowOnboarding] = useState(() => !hasSeenOnboarding());
 
+  const loadEntries = useCallback(() => {
+    const loadedEntries = getMoodEntries();
+    setEntries(loadedEntries);
+  }, []);
+
   // Load entries and mood history on mount
   useEffect(() => {
     loadEntries();
     setMoodHistoryList(getMoodHistory());
-  }, []);
+  }, [loadEntries]);
 
   // Restore last mood dot if saved within last 24 hours
   useEffect(() => {
@@ -85,7 +90,7 @@ function App() {
     }
   }, []);
 
-  // Sync onboarding visibility with storage (e.g. returning user)
+  // Sync onboarding visibility with storage
   useEffect(() => {
     if (hasSeenOnboarding()) {
       setShowOnboarding(false);
@@ -113,11 +118,6 @@ function App() {
     setStats(updatedStats);
     updateUserStats(updatedStats);
   }, [entries]);
-
-  const loadEntries = useCallback(() => {
-    const loadedEntries = getMoodEntries();
-    setEntries(loadedEntries);
-  }, []);
 
   const handleMoodSelect = useCallback((moodData) => {
     setSelectedMood(moodData);
@@ -153,28 +153,16 @@ function App() {
       loadEntries();
       addToast('Mood logged successfully! 🎉', 'success');
       setBottomToastMessage('Moment captured. Stay mindful! ✨');
-      // Show contextual mood prompt after a short delay so entry modal closes first
       setTimeout(() => {
         setPromptQuadrant(moodData.quadrant);
         setShowMoodPrompt(true);
       }, 350);
-      // Check for streak milestones
+      
       const newStreak = calculateStreak([...entries, moodData]);
       if (newStreak === 7) {
         setTimeout(() => {
           setCelebration({ show: true, message: '🔥 7-Day Streak!' });
           addToast('🔥 7-day streak! Keep it up!', 'success');
-        }, 500);
-      } else if (newStreak === 30) {
-        setTimeout(() => {
-          setCelebration({ show: true, message: '🌟 30-Day Streak!' });
-          addToast('🌟 Amazing! 30-day streak achieved!', 'success');
-        }, 500);
-      }
-      // Check for total check-ins milestone
-      if (entries.length + 1 === 100) {
-        setTimeout(() => {
-          setCelebration({ show: true, message: '🏆 100 Check-ins!' });
         }, 500);
       }
     }
@@ -200,26 +188,10 @@ function App() {
   }, []);
 
   const handleGetStarted = useCallback(() => {
-    try {
-      // Mark as seen first
-      markWelcomeSeen();
-      // Update state - use functional updates to ensure they happen
-      setShowWelcome(false);
-      setActiveTab('track');
-    } catch (error) {
-      console.error('Error in handleGetStarted:', error);
-      // Fallback: just hide welcome screen
-      setShowWelcome(false);
-      setActiveTab('track');
-    }
+    markWelcomeSeen();
+    setShowWelcome(false);
+    setActiveTab('track');
   }, []);
-
-  const lastMoodQuadrant = entries.length > 0 ? entries[entries.length - 1].quadrant : null;
-
-  // Show welcome screen if not seen
-  if (showWelcome) {
-    return <WelcomeScreen onGetStarted={handleGetStarted} />;
-  }
 
   const handleCloseOnboarding = useCallback(() => {
     markOnboardingSeen();
@@ -236,12 +208,16 @@ function App() {
     clearLastMood();
   }, []);
 
-  // Main app content
+  const lastMoodQuadrant = entries.length > 0 ? entries[entries.length - 1].quadrant : null;
+
+  // --- EARLY RETURN MOVED BELOW ALL HOOKS ---
+  if (showWelcome) {
+    return <WelcomeScreen onGetStarted={handleGetStarted} />;
+  }
+
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col">
-      {showOnboarding && (
-        <OnboardingOverlay onClose={handleCloseOnboarding} />
-      )}
+      {showOnboarding && <OnboardingOverlay onClose={handleCloseOnboarding} />}
       <Navigation activeTab={activeTab} onTabChange={setActiveTab} />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-1">
@@ -269,56 +245,15 @@ function App() {
             <QuadrantTrendsChart entries={entries} />
             <RecentReflections moodHistory={moodHistoryList} />
             <TimeOfDayPatterns moodHistory={moodHistoryList} />
-            {moodHistoryList.length > 0 && (
-              <div className="mt-8 max-w-2xl mx-auto">
-                <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Recent check-ins</h3>
-                <ul className="flex flex-wrap gap-2">
-                  {[...moodHistoryList].reverse().map((entry, index) => (
-                    <li
-                      key={`${entry.date}-${entry.time}-${index}`}
-                      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-gray-100 dark:bg-gray-800 text-xs text-gray-700 dark:text-gray-300"
-                    >
-                      <span className={`capitalize font-medium ${
-                        entry.quadrant === 'red' ? 'text-red-600 dark:text-red-400' :
-                        entry.quadrant === 'blue' ? 'text-blue-600 dark:text-blue-400' :
-                        entry.quadrant === 'yellow' ? 'text-amber-600 dark:text-amber-400' :
-                        'text-emerald-600 dark:text-emerald-400'
-                      }`}>
-                        {entry.quadrant}
-                      </span>
-                      <span className="text-gray-500 dark:text-gray-400">{entry.time}</span>
-                      <span className="text-gray-400 dark:text-gray-500">{entry.date}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-          </div>
-        )}
-
-        {!activeTab && (
-          <div className="text-center py-12">
-            <p className="text-gray-600 dark:text-gray-400">Loading...</p>
           </div>
         )}
 
         {activeTab === 'history' && (
-          <MoodHistory
-            entries={entries}
-            onEdit={handleEditEntry}
-            onDelete={loadEntries}
-            onRefresh={loadEntries}
-          />
+          <MoodHistory entries={entries} onEdit={handleEditEntry} onDelete={loadEntries} onRefresh={loadEntries} />
         )}
 
-        {activeTab === 'analytics' && (
-          <Analytics entries={entries} />
-        )}
-
-        {activeTab === 'insights' && (
-          <MoodRegulation lastMoodQuadrant={lastMoodQuadrant} />
-        )}
-
+        {activeTab === 'analytics' && <Analytics entries={entries} />}
+        {activeTab === 'insights' && <MoodRegulation lastMoodQuadrant={lastMoodQuadrant} />}
         {activeTab === 'settings' && (
           <Settings
             onPreferencesChange={handlePreferencesChange}
@@ -333,31 +268,9 @@ function App() {
       </main>
 
       <FloatingCheckIn onClick={() => setActiveTab('track')} />
-
-      <MoodEntryModal
-        isOpen={modalOpen}
-        onClose={() => {
-          setModalOpen(false);
-          setSelectedMood(null);
-          setEditingEntry(null);
-        }}
-        onSave={handleSaveMood}
-        initialData={editingEntry || selectedMood}
-      />
-
-      <MoodPromptModal
-        isOpen={showMoodPrompt}
-        quadrant={promptQuadrant}
-        onClose={() => {
-          setShowMoodPrompt(false);
-          setPromptQuadrant(null);
-        }}
-        onYesHelpShift={(quadrant) => {
-          setShiftCardQuadrant(quadrant);
-          setShowShiftCard(true);
-        }}
-      />
-
+      <MoodEntryModal isOpen={modalOpen} onClose={() => { setModalOpen(false); setSelectedMood(null); setEditingEntry(null); }} onSave={handleSaveMood} initialData={editingEntry || selectedMood} />
+      <MoodPromptModal isOpen={showMoodPrompt} quadrant={promptQuadrant} onClose={() => { setShowMoodPrompt(false); setPromptQuadrant(null); }} onYesHelpShift={(q) => { setShiftCardQuadrant(q); setShowShiftCard(true); }} />
+      
       <ShiftCard
         isOpen={showShiftCard}
         quadrant={shiftCardQuadrant}
@@ -367,7 +280,7 @@ function App() {
           setShowShiftCard(false);
           setShiftCardQuadrant(null);
           setSnappedEmotionWord(null);
-          setSelectionDotPosition(null); /* Remove dot when shift card is closed */
+          setSelectionDotPosition(null);
         }}
         onSaveNote={(note) => {
           updateLastMoodHistoryNote(note);
@@ -376,26 +289,11 @@ function App() {
       />
 
       <ToastContainer toasts={toasts} onRemove={removeToast} />
-
-      {/* Bottom-center toast: slides up on mood logged, auto-hides after 3s */}
-      {bottomToastMessage && (
-        <BottomToast
-          message={bottomToastMessage}
-          onHide={() => setBottomToastMessage(null)}
-          duration={3000}
-        />
-      )}
-
-      <Celebration
-        show={celebration.show}
-        message={celebration.message}
-        onComplete={() => setCelebration({ show: false, message: '' })}
-      />
-
+      {bottomToastMessage && <BottomToast message={bottomToastMessage} onHide={() => setBottomToastMessage(null)} duration={3000} />}
+      <Celebration show={celebration.show} message={celebration.message} onComplete={() => setCelebration({ show: false, message: '' })} />
       <Footer onTabChange={setActiveTab} />
     </div>
   );
 }
 
 export default App;
-
