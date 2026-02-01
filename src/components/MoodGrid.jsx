@@ -35,21 +35,17 @@ function findSnappedEmotion(nx, ny) {
   return closest;
 }
 
-export default function MoodGrid({ onMoodSelect, selectedPosition, selectionDotPosition, snappedEmotionWord, onResetSelection }) {
+export default function MoodGrid({ onMoodSelect, selectionDotPosition, snappedEmotionWord, onResetSelection }) {
   const [hoverPosition, setHoverPosition] = useState(null);
   const [isHovering, setIsHovering] = useState(false);
-  const [tooltipPosition, setTooltipPosition] = useState({ showBelow: true, left: true });
 
-  // STABILIZED GRADIENT ID
-  const gradientId = useMemo(() => `mood-gradient-static`, []);
+  // Use a stable ID for the SVG gradients
+  const gradientId = "mood-grad-fixed";
 
-  const handleClick = useCallback((e) => {
-    const rect = e.currentTarget.getBoundingClientRect();
+  const handleInteraction = useCallback((clientX, clientY, target) => {
+    const rect = target.getBoundingClientRect();
     const scaleX = GRID_SIZE / rect.width;
     const scaleY = GRID_SIZE / rect.height;
-
-    const clientX = e.clientX || (e.touches && e.touches[0]?.clientX);
-    const clientY = e.clientY || (e.touches && e.touches[0]?.clientY);
 
     let x = Math.max(0, Math.min(GRID_SIZE, (clientX - rect.left) * scaleX));
     let y = Math.max(0, Math.min(GRID_SIZE, (clientY - rect.top) * scaleY));
@@ -65,170 +61,89 @@ export default function MoodGrid({ onMoodSelect, selectedPosition, selectionDotP
       snappedWord = snapped.name;
     }
 
-    const quadrant = getQuadrant(x, y);
-    const energy = calculateEnergy(y);
-    const pleasantness = calculatePleasantness(x);
-
     if (onMoodSelect) {
-      onMoodSelect({ x, y, quadrant, energy, pleasantness, snappedWord });
-    }
-  }, [onMoodSelect]);
-
-  const handleMouseMove = useCallback((e) => {
-    const rect = e.currentTarget.getBoundingClientRect();
-    const scaleX = GRID_SIZE / rect.width;
-    const scaleY = GRID_SIZE / rect.height;
-    
-    const x = Math.max(0, Math.min(GRID_SIZE, (e.clientX - rect.left) * scaleX));
-    const y = Math.max(0, Math.min(GRID_SIZE, (e.clientY - rect.top) * scaleY));
-    
-    const quadrant = getQuadrant(x, y);
-    const energy = calculateEnergy(y);
-    const pleasantness = calculatePleasantness(x);
-    const relativeY = (e.clientY - rect.top) / rect.height;
-    
-    setTooltipPosition({
-      showBelow: relativeY < 0.4,
-      left: true,
-    });
-    
-    setHoverPosition({ x, y, quadrant, energy, pleasantness });
-    setIsHovering(true);
-  }, []);
-
-  const handleMouseLeave = useCallback(() => {
-    setIsHovering(false);
-    setHoverPosition(null);
-  }, []);
-
-  const handleLabelClick = useCallback((emotion) => {
-    const x = (emotion.left / 100) * GRID_SIZE;
-    const y = (emotion.top / 100) * GRID_SIZE;
-    const quadrant = getQuadrant(x, y);
-    const energy = calculateEnergy(y);
-    const pleasantness = calculatePleasantness(x);
-    if (onMoodSelect) {
-      onMoodSelect({ x, y, quadrant, energy, pleasantness, snappedWord: emotion.name });
+      onMoodSelect({
+        x, y,
+        quadrant: getQuadrant(x, y),
+        energy: calculateEnergy(y),
+        pleasantness: calculatePleasantness(x),
+        snappedWord
+      });
     }
   }, [onMoodSelect]);
 
   return (
-    <div className="relative flex flex-col justify-center items-center w-full" id="moodGridContainer">
-      <div className="mood-grid relative inline-block">
+    <div className="flex flex-col items-center w-full">
+      <div className="relative inline-block border-2 border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden shadow-2xl">
         
+        {/* Selection Dot Layer */}
         {selectionDotPosition && (
           <div
-            id="selectionDot"
+            className="absolute z-40 w-4 h-4 bg-white border-2 border-black rounded-full pointer-events-none transition-all duration-200"
             style={{
-              position: 'absolute',
               left: `${(selectionDotPosition.x / GRID_SIZE) * 100}%`,
               top: `${(selectionDotPosition.y / GRID_SIZE) * 100}%`,
               transform: 'translate(-50%, -50%)',
-              zIndex: 40,
-              pointerEvents: 'none'
+              boxShadow: '0 0 10px rgba(0,0,0,0.5)'
             }}
           />
         )}
 
-        <div className="relative inline-block" style={{ touchAction: 'none' }}>
-          <svg
-            width={GRID_SIZE}
-            height={GRID_SIZE}
-            className="border-2 border-gray-300 dark:border-gray-600 rounded-lg shadow-lg cursor-crosshair transition-all"
-            style={{ maxWidth: '100%', height: 'auto', display: 'block' }}
-            viewBox={`0 0 ${GRID_SIZE} ${GRID_SIZE}`}
-            onClick={handleClick}
-            onMouseMove={handleMouseMove}
-            onMouseLeave={handleMouseLeave}
-          >
-            <defs>
-              <linearGradient id={`${gradientId}-yellow`} x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#FCD34D" stopOpacity="0.9" />
-                <stop offset="100%" stopColor="#FCD34D" stopOpacity="0.3" />
-              </linearGradient>
-              <linearGradient id={`${gradientId}-red`} x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#F87171" stopOpacity="0.9" />
-                <stop offset="100%" stopColor="#F87171" stopOpacity="0.3" />
-              </linearGradient>
-              <linearGradient id={`${gradientId}-blue`} x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#60A5FA" stopOpacity="0.3" />
-                <stop offset="100%" stopColor="#60A5FA" stopOpacity="0.9" />
-              </linearGradient>
-              <linearGradient id={`${gradientId}-green`} x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#34D399" stopOpacity="0.3" />
-                <stop offset="100%" stopColor="#34D399" stopOpacity="0.9" />
-              </linearGradient>
-            </defs>
+        <svg
+          width={GRID_SIZE}
+          height={GRID_SIZE}
+          className="bg-white dark:bg-gray-900 cursor-crosshair"
+          viewBox={`0 0 ${GRID_SIZE} ${GRID_SIZE}`}
+          onClick={(e) => handleInteraction(e.clientX, e.clientY, e.currentTarget)}
+          onMouseMove={(e) => {
+             const rect = e.currentTarget.getBoundingClientRect();
+             setHoverPosition({ 
+               x: (e.clientX - rect.left) * (GRID_SIZE / rect.width), 
+               y: (e.clientY - rect.top) * (GRID_SIZE / rect.height) 
+             });
+             setIsHovering(true);
+          }}
+          onMouseLeave={() => setIsHovering(false)}
+        >
+          <defs>
+            <linearGradient id={`${gradientId}-red`} x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#f87171" /><stop offset="100%" stopColor="#fee2e2" /></linearGradient>
+            <linearGradient id={`${gradientId}-yellow`} x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#fcd34d" /><stop offset="100%" stopColor="#fef9c3" /></linearGradient>
+            <linearGradient id={`${gradientId}-blue`} x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#dbeafe" /><stop offset="100%" stopColor="#60a5fa" /></linearGradient>
+            <linearGradient id={`${gradientId}-green`} x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#dcfce7" /><stop offset="100%" stopColor="#34d399" /></linearGradient>
+          </defs>
 
-            <rect x={GRID_SIZE / 2} y="0" width={GRID_SIZE / 2} height={GRID_SIZE / 2} fill={`url(#${gradientId}-yellow)`} />
-            <rect x="0" y="0" width={GRID_SIZE / 2} height={GRID_SIZE / 2} fill={`url(#${gradientId}-red)`} />
-            <rect x="0" y={GRID_SIZE / 2} width={GRID_SIZE / 2} height={GRID_SIZE / 2} fill={`url(#${gradientId}-blue)`} />
-            <rect x={GRID_SIZE / 2} y={GRID_SIZE / 2} width={GRID_SIZE / 2} height={GRID_SIZE / 2} fill={`url(#${gradientId}-green)`} />
+          <rect x="0" y="0" width={GRID_SIZE/2} height={GRID_SIZE/2} fill={`url(#${gradientId}-red)`} />
+          <rect x={GRID_SIZE/2} y="0" width={GRID_SIZE/2} height={GRID_SIZE/2} fill={`url(#${gradientId}-yellow)`} />
+          <rect x="0" y={GRID_SIZE/2} width={GRID_SIZE/2} height={GRID_SIZE/2} fill={`url(#${gradientId}-blue)`} />
+          <rect x={GRID_SIZE/2} y={GRID_SIZE/2} width={GRID_SIZE/2} height={GRID_SIZE/2} fill={`url(#${gradientId}-green)`} />
+          
+          <line x1={GRID_SIZE/2} y1="0" x2={GRID_SIZE/2} y2={GRID_SIZE} stroke="rgba(0,0,0,0.1)" strokeDasharray="4" />
+          <line x1="0" y1={GRID_SIZE/2} x2={GRID_SIZE} y2={GRID_SIZE/2} stroke="rgba(0,0,0,0.1)" strokeDasharray="4" />
+        </svg>
 
-            <line x1={GRID_SIZE / 2} y1="0" x2={GRID_SIZE / 2} y2={GRID_SIZE} stroke="#6B7280" strokeWidth="2" strokeDasharray="5,5" opacity="0.5" />
-            <line x1="0" y1={GRID_SIZE / 2} x2={GRID_SIZE} y2={GRID_SIZE / 2} stroke="#6B7280" strokeWidth="2" strokeDasharray="5,5" opacity="0.5" />
-
-            <g className="select-none pointer-events-none" fill="currentColor">
-              <text x="10" y="25" className="text-[10px] font-bold opacity-70">HIGH ENERGY</text>
-              <text x="10" y={GRID_SIZE - 15} className="text-[10px] font-bold opacity-70">LOW ENERGY</text>
-              <text x="10" y={GRID_SIZE / 2 - 10} className="text-[10px] font-bold opacity-70">UNPLEASANT</text>
-              <text x={GRID_SIZE - 75} y={GRID_SIZE / 2 - 10} className="text-[10px] font-bold opacity-70">PLEASANT</text>
-            </g>
-
-            {isHovering && hoverPosition && (
-              <circle
-                cx={hoverPosition.x}
-                cy={hoverPosition.y}
-                r="8"
-                fill={getQuadrantColor(hoverPosition.quadrant)}
-                stroke="white"
-                strokeWidth="2"
-                style={{ filter: 'drop-shadow(0 0 4px rgba(0,0,0,0.2))' }}
-              />
-            )}
-          </svg>
-
-          <div className="absolute inset-0 pointer-events-none">
-            {EMOTION_LABELS.map((emotion) => (
-              <span
-                key={emotion.name}
-                className={`emotion-label pointer-events-auto ${snappedEmotionWord === emotion.name ? 'active-snap' : ''}`}
-                style={{ 
-                  left: `${emotion.left}%`, 
-                  top: `${emotion.top}%`,
-                  position: 'absolute',
-                  transform: 'translate(-50%, -50%)'
-                }}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleLabelClick(emotion);
-                }}
-              >
-                {emotion.name}
-              </span>
-            ))}
-          </div>
+        {/* Emotion Labels Overlay */}
+        <div className="absolute inset-0 pointer-events-none">
+          {EMOTION_LABELS.map((emotion) => (
+            <span
+              key={emotion.name}
+              className={`absolute text-[11px] font-medium transition-all px-1 rounded ${snappedEmotionWord === emotion.name ? 'bg-black text-white scale-110 z-50' : 'text-gray-700 opacity-80'}`}
+              style={{ 
+                left: `${emotion.left}%`, 
+                top: `${emotion.top}%`,
+                transform: 'translate(-50%, -50%)'
+              }}
+            >
+              {emotion.name}
+            </span>
+          ))}
         </div>
-
-        {isHovering && hoverPosition && (
-          <div
-            className="tooltip absolute pointer-events-none z-50"
-            style={{
-              left: `${(hoverPosition.x / GRID_SIZE) * 100}%`,
-              top: `${(hoverPosition.y / GRID_SIZE) * 100}%`,
-              transform: tooltipPosition.showBelow ? 'translate(-50%, 20px)' : 'translate(-50%, -110%)'
-            }}
-          >
-            <div className="text-xs font-bold">{getQuadrantLabel(hoverPosition.quadrant)}</div>
-            <div className="text-[10px] opacity-80">
-              E: {hoverPosition.energy}% | P: {hoverPosition.pleasantness}%
-            </div>
-          </div>
-        )}
       </div>
 
-      {(selectionDotPosition || snappedEmotionWord) && (
-        <button type="button" className="reset-btn mt-4" onClick={onResetSelection}>
+      {onResetSelection && (selectionDotPosition || snappedEmotionWord) && (
+        <button 
+          onClick={onResetSelection}
+          className="mt-6 px-4 py-2 bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 rounded-full text-xs hover:bg-gray-200 transition-colors"
+        >
           ↺ Reset Selection
         </button>
       )}
