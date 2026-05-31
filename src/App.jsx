@@ -40,8 +40,15 @@ import {
 } from './utils/storage';
 import { calculateStreak, getBadges } from './utils/moodUtils';
 
+const TAB_IDS = ['track', 'history', 'analytics', 'insights', 'settings'];
+
+function getTabFromHash() {
+  const hash = window.location.hash.replace('#', '');
+  return TAB_IDS.includes(hash) ? hash : 'track';
+}
+
 function App() {
-  const [activeTab, setActiveTab] = useState('track');
+  const [activeTab, setActiveTab] = useState(getTabFromHash);
   const [entries, setEntries] = useState([]);
   const [preferences, setPreferences] = useState(getUserPreferences());
   const [stats, setStats] = useState(getUserStats());
@@ -65,6 +72,21 @@ function App() {
     const loadedEntries = getMoodEntries();
     setEntries(loadedEntries);
   }, []);
+
+  // Sync tab with URL hash (matches public/sitemap.xml routes)
+  useEffect(() => {
+    const onHashChange = () => setActiveTab(getTabFromHash());
+    window.addEventListener('hashchange', onHashChange);
+    return () => window.removeEventListener('hashchange', onHashChange);
+  }, []);
+
+  useEffect(() => {
+    if (showWelcome) return;
+    const nextHash = `#${activeTab}`;
+    if (window.location.hash !== nextHash) {
+      window.history.replaceState(null, '', nextHash);
+    }
+  }, [activeTab, showWelcome]);
 
   // Load entries and mood history on mount
   useEffect(() => {
@@ -191,6 +213,7 @@ function App() {
     markWelcomeSeen();
     setShowWelcome(false);
     setActiveTab('track');
+    window.location.hash = '#track';
   }, []);
 
   const handleCloseOnboarding = useCallback(() => {
@@ -210,7 +233,6 @@ function App() {
 
   const lastMoodQuadrant = entries.length > 0 ? entries[entries.length - 1].quadrant : null;
 
-  // --- EARLY RETURN MOVED BELOW ALL HOOKS ---
   if (showWelcome) {
     return <WelcomeScreen onGetStarted={handleGetStarted} />;
   }
@@ -245,6 +267,30 @@ function App() {
             <QuadrantTrendsChart entries={entries} />
             <RecentReflections moodHistory={moodHistoryList} />
             <TimeOfDayPatterns moodHistory={moodHistoryList} />
+            {moodHistoryList.length > 0 && (
+              <div className="mt-8 max-w-2xl mx-auto">
+                <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Recent check-ins</h3>
+                <ul className="flex flex-wrap gap-2">
+                  {[...moodHistoryList].reverse().map((entry, index) => (
+                    <li
+                      key={`${entry.date}-${entry.time}-${index}`}
+                      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-gray-100 dark:bg-gray-800 text-xs text-gray-700 dark:text-gray-300"
+                    >
+                      <span className={`capitalize font-medium ${
+                        entry.quadrant === 'red' ? 'text-red-600 dark:text-red-400' :
+                        entry.quadrant === 'blue' ? 'text-blue-600 dark:text-blue-400' :
+                        entry.quadrant === 'yellow' ? 'text-amber-600 dark:text-amber-400' :
+                        'text-emerald-600 dark:text-emerald-400'
+                      }`}>
+                        {entry.quadrant}
+                      </span>
+                      <span className="text-gray-500 dark:text-gray-400">{entry.time}</span>
+                      <span className="text-gray-400 dark:text-gray-500">{entry.date}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
           </div>
         )}
 

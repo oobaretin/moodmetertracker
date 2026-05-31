@@ -115,14 +115,16 @@ export default function WelcomeScreen({ onGetStarted }) {
 
           <div className="flex flex-col sm:flex-row gap-4">
             <button
+              type="button"
               onClick={onGetStarted}
-              className="flex-1 px-6 py-4 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg font-semibold text-lg hover:from-blue-600 hover:to-purple-700 transition-all shadow-lg hover:shadow-xl transform hover:scale-105"
+              className="flex-1 min-h-[48px] px-6 py-4 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg font-semibold text-lg hover:from-blue-600 hover:to-purple-700 transition-all shadow-lg hover:shadow-xl active:scale-[0.98]"
             >
               Get Started
             </button>
             <button
+              type="button"
               onClick={onGetStarted}
-              className="px-6 py-4 border-2 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg font-semibold hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+              className="min-h-[48px] px-6 py-4 border-2 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg font-semibold hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
             >
               Skip Introduction
             </button>
