@@ -1,5 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import Navigation from './components/Navigation';
+import BottomNavigation from './components/BottomNavigation';
+import PageHeader from './components/PageHeader';
 import WelcomeScreen from './components/WelcomeScreen';
 import OnboardingOverlay from './components/OnboardingOverlay';
 import MoodGrid from './components/MoodGrid';
@@ -37,10 +39,12 @@ import {
   getMoodHistory,
   addToMoodHistory,
   updateLastMoodHistoryNote,
+  saveUserPreferences,
 } from './utils/storage';
 import { calculateStreak, getBadges } from './utils/moodUtils';
+import { TAB_IDS, getTabMeta } from './config/tabs';
 
-const TAB_IDS = ['track', 'history', 'analytics', 'insights', 'settings'];
+const APP_NAME = 'Mood Meter Tracker';
 
 function getTabFromHash() {
   const hash = window.location.hash.replace('#', '');
@@ -87,6 +91,21 @@ function App() {
       window.history.replaceState(null, '', nextHash);
     }
   }, [activeTab, showWelcome]);
+
+  const tabMeta = getTabMeta(activeTab);
+
+  useEffect(() => {
+    if (showWelcome) {
+      document.title = `Welcome · ${APP_NAME}`;
+      return;
+    }
+    document.title = `${tabMeta.documentTitle} · ${APP_NAME}`;
+  }, [showWelcome, tabMeta.documentTitle]);
+
+  const handleTabChange = useCallback((tabId) => {
+    setActiveTab(tabId);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, []);
 
   // Load entries and mood history on mount
   useEffect(() => {
@@ -173,25 +192,34 @@ function App() {
       addToMoodHistory({ quadrant: moodData.quadrant });
       setMoodHistoryList(getMoodHistory());
       loadEntries();
-      addToast('Mood logged successfully! 🎉', 'success');
-      setBottomToastMessage('Moment captured. Stay mindful! ✨');
-      setTimeout(() => {
-        setPromptQuadrant(moodData.quadrant);
-        setShowMoodPrompt(true);
-      }, 350);
-      
+      setBottomToastMessage('Mood saved · stay mindful ✨');
+
+      if (!preferences.skipMoodPrompt) {
+        setTimeout(() => {
+          setPromptQuadrant(moodData.quadrant);
+          setShowMoodPrompt(true);
+        }, 400);
+      }
+
       const newStreak = calculateStreak([...entries, moodData]);
       if (newStreak === 7) {
         setTimeout(() => {
           setCelebration({ show: true, message: '🔥 7-Day Streak!' });
-          addToast('🔥 7-day streak! Keep it up!', 'success');
-        }, 500);
+        }, 600);
       }
     }
     setModalOpen(false);
     setSelectedMood(null);
     setEditingEntry(null);
-  }, [editingEntry, loadEntries, entries, addToast]);
+  }, [editingEntry, loadEntries, entries, addToast, preferences.skipMoodPrompt]);
+
+  const handleSkipMoodPromptsForever = useCallback(() => {
+    const updated = { ...preferences, skipMoodPrompt: true };
+    saveUserPreferences(updated);
+    setPreferences(updated);
+    setShowMoodPrompt(false);
+    setPromptQuadrant(null);
+  }, [preferences]);
 
   const handleEditEntry = useCallback((entry) => {
     setEditingEntry(entry);
@@ -240,9 +268,10 @@ function App() {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col">
       {showOnboarding && <OnboardingOverlay onClose={handleCloseOnboarding} />}
-      <Navigation activeTab={activeTab} onTabChange={setActiveTab} />
+      <Navigation activeTab={activeTab} onTabChange={handleTabChange} />
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-1">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 md:py-8 flex-1 pb-24 md:pb-8">
+        <PageHeader title={tabMeta.pageTitle} description={tabMeta.pageDescription} />
         {activeTab === 'track' && (
           <div className="space-y-6">
             <div className="flex flex-col lg:flex-row gap-6 justify-center items-start">
@@ -313,9 +342,21 @@ function App() {
         )}
       </main>
 
-      <FloatingCheckIn onClick={() => setActiveTab('track')} />
+      {activeTab !== 'track' && (
+        <FloatingCheckIn
+          onClick={() => handleTabChange('track')}
+          className="bottom-20 md:bottom-6"
+        />
+      )}
+      <BottomNavigation activeTab={activeTab} onTabChange={handleTabChange} />
       <MoodEntryModal isOpen={modalOpen} onClose={() => { setModalOpen(false); setSelectedMood(null); setEditingEntry(null); }} onSave={handleSaveMood} initialData={editingEntry || selectedMood} />
-      <MoodPromptModal isOpen={showMoodPrompt} quadrant={promptQuadrant} onClose={() => { setShowMoodPrompt(false); setPromptQuadrant(null); }} onYesHelpShift={(q) => { setShiftCardQuadrant(q); setShowShiftCard(true); }} />
+      <MoodPromptModal
+        isOpen={showMoodPrompt}
+        quadrant={promptQuadrant}
+        onClose={() => { setShowMoodPrompt(false); setPromptQuadrant(null); }}
+        onYesHelpShift={(q) => { setShiftCardQuadrant(q); setShowShiftCard(true); }}
+        onSkipPromptsForever={handleSkipMoodPromptsForever}
+      />
       
       <ShiftCard
         isOpen={showShiftCard}
@@ -337,7 +378,9 @@ function App() {
       <ToastContainer toasts={toasts} onRemove={removeToast} />
       {bottomToastMessage && <BottomToast message={bottomToastMessage} onHide={() => setBottomToastMessage(null)} duration={3000} />}
       <Celebration show={celebration.show} message={celebration.message} onComplete={() => setCelebration({ show: false, message: '' })} />
-      <Footer onTabChange={setActiveTab} />
+      <div className="mb-20 md:mb-0">
+        <Footer onTabChange={handleTabChange} />
+      </div>
     </div>
   );
 }

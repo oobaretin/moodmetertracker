@@ -16,6 +16,7 @@ export default function MoodPromptModal({
   onSavor,
   onChannel,
   onShare,
+  onSkipPromptsForever,
 }) {
   if (!isOpen || !quadrant) return null;
 
@@ -109,6 +110,25 @@ export default function MoodPromptModal({
             </button>
           </div>
         )}
+
+        <div className="mt-5 pt-4 border-t border-gray-200 dark:border-gray-600 flex flex-col gap-2">
+          <button
+            type="button"
+            onClick={onClose}
+            className="text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
+          >
+            Not now
+          </button>
+          {onSkipPromptsForever && (
+            <button
+              type="button"
+              onClick={onSkipPromptsForever}
+              className="text-sm text-left text-blue-600 dark:text-blue-400 hover:underline"
+            >
+              Don&apos;t ask again after logging
+            </button>
+          )}
+        </div>
       </div>
     </>
   );

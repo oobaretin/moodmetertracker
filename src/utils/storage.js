@@ -289,6 +289,7 @@ export function getUserPreferences() {
     privacyMode: false,
     customTags: [],
     dailyGoal: 1,
+    skipMoodPrompt: false,
   };
 }
 

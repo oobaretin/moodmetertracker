@@ -126,6 +126,30 @@ export default function Settings({ onPreferencesChange, onDataChange, onClearAll
 
   return (
     <div className="space-y-6">
+      {/* Check-in experience */}
+      <div className="bg-white dark:bg-gray-800 p-6 rounded-lg border border-gray-200 dark:border-gray-700">
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+          Check-in experience
+        </h3>
+        <label className="flex items-center justify-between cursor-pointer gap-4">
+          <div>
+            <span className="text-gray-900 dark:text-white block">Skip follow-up prompts</span>
+            <span className="text-sm text-gray-500 dark:text-gray-400">
+              After logging, go straight back to the app without extra questions
+            </span>
+          </div>
+          <label className="relative inline-flex items-center cursor-pointer flex-shrink-0">
+            <input
+              type="checkbox"
+              checked={!!preferences.skipMoodPrompt}
+              onChange={(e) => handlePreferenceChange('skipMoodPrompt', e.target.checked)}
+              className="sr-only peer"
+            />
+            <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-500 relative" />
+          </label>
+        </label>
+      </div>
+
       {/* Appearance */}
       <div className="bg-white dark:bg-gray-800 p-6 rounded-lg border border-gray-200 dark:border-gray-700">
         <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
