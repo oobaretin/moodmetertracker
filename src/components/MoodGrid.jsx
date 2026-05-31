@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { getQuadrant, calculateEnergy, calculatePleasantness, getQuadrantColor, getQuadrantLabel } from '../utils/moodUtils';
 
 const GRID_SIZE = 450; 
@@ -72,9 +72,19 @@ export default function MoodGrid({ onMoodSelect, selectionDotPosition, snappedEm
     }
   }, [onMoodSelect]);
 
+  const handleTouchEnd = useCallback(
+    (e) => {
+      const touch = e.changedTouches?.[0];
+      if (touch) {
+        handleInteraction(touch.clientX, touch.clientY, e.currentTarget);
+      }
+    },
+    [handleInteraction]
+  );
+
   return (
-    <div className="flex flex-col items-center w-full">
-      <div className="relative inline-block border-2 border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden shadow-2xl">
+    <div className="flex flex-col items-center w-full max-w-[450px] mx-auto">
+      <div className="relative w-full border-2 border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden shadow-2xl">
         
         {/* Selection Dot Layer */}
         {selectionDotPosition && (
@@ -90,11 +100,10 @@ export default function MoodGrid({ onMoodSelect, selectionDotPosition, snappedEm
         )}
 
         <svg
-          width={GRID_SIZE}
-          height={GRID_SIZE}
-          className="bg-white dark:bg-gray-900 cursor-crosshair"
+          className="w-full h-auto aspect-square block bg-white dark:bg-gray-900 cursor-crosshair touch-manipulation"
           viewBox={`0 0 ${GRID_SIZE} ${GRID_SIZE}`}
           onClick={(e) => handleInteraction(e.clientX, e.clientY, e.currentTarget)}
+          onTouchEnd={handleTouchEnd}
           onMouseMove={(e) => {
              const rect = e.currentTarget.getBoundingClientRect();
              setHoverPosition({ 

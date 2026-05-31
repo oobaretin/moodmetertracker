@@ -26,7 +26,7 @@ function parseTimestamp(entry) {
   return Number.isNaN(parsed) ? null : parsed;
 }
 
-export default function TimeOfDayPatterns({ moodHistory = [] }) {
+export default function TimeOfDayPatterns({ moodHistory = [], embedded = false }) {
   const withTimestamp = moodHistory.filter((e) => parseTimestamp(e) != null);
   const amMoods = [];
   const pmMoods = [];
@@ -67,8 +67,16 @@ export default function TimeOfDayPatterns({ moodHistory = [] }) {
   };
 
   return (
-    <div className="time-analysis-container mt-8 max-w-2xl mx-auto p-5 bg-white dark:bg-gray-800 rounded-2xl border border-dashed border-slate-300 dark:border-gray-600">
-      <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Time of Day Patterns</h3>
+    <div
+      className={`time-analysis-container max-w-2xl mx-auto p-5 ${
+        embedded
+          ? 'bg-transparent dark:bg-transparent border-0 p-0'
+          : 'mt-8 bg-white dark:bg-gray-800 rounded-2xl border border-dashed border-slate-300 dark:border-gray-600'
+      }`}
+    >
+      {!embedded && (
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Time of Day Patterns</h3>
+      )}
       <div className="split-view flex gap-4 mt-4">
         <div className="time-slot flex-1 text-center">
           <div className="time-header text-sm font-bold text-slate-500 dark:text-slate-400 mb-2">

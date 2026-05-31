@@ -19,12 +19,16 @@ function getTimeStr(entry) {
   return entry.time ?? '—';
 }
 
-export default function RecentReflections({ moodHistory = [] }) {
+export default function RecentReflections({ moodHistory = [], embedded = false }) {
   const latest = moodHistory.length === 0 ? [] : [...moodHistory].slice(-3).reverse();
 
   return (
-    <div className="recent-notes-container mt-8 max-w-2xl mx-auto text-left">
-      <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Recent Reflections</h3>
+    <div
+      className={`recent-notes-container max-w-2xl mx-auto text-left ${embedded ? '' : 'mt-8'}`}
+    >
+      {!embedded && (
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Recent Reflections</h3>
+      )}
       <div id="notesFeed" className="space-y-3">
         {latest.length === 0 ? (
           <p className="empty-msg text-sm text-slate-400 dark:text-slate-500 text-center py-5">

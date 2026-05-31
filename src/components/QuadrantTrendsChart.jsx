@@ -26,7 +26,7 @@ function parseTimestamp(entry) {
   return Number.isNaN(parsed) ? 0 : parsed;
 }
 
-export default function QuadrantTrendsChart({ entries }) {
+export default function QuadrantTrendsChart({ entries, embedded = false }) {
   const sevenDaysMs = 7 * 24 * 60 * 60 * 1000;
   const sevenDaysAgo = Date.now() - sevenDaysMs;
 
@@ -49,8 +49,16 @@ export default function QuadrantTrendsChart({ entries }) {
   const insightText = topMood ? INSIGHTS[topMood] : 'Start logging to see your patterns!';
 
   return (
-    <div className="trends-container mt-8 max-w-2xl mx-auto p-5 bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 text-center">
-      <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Your Last 7 Days</h3>
+    <div
+      className={`trends-container max-w-2xl mx-auto p-5 text-center ${
+        embedded
+          ? 'bg-transparent dark:bg-transparent border-0 shadow-none p-0'
+          : 'mt-8 bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700'
+      }`}
+    >
+      {!embedded && (
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Your Last 7 Days</h3>
+      )}
       <div className="chart-bars flex justify-around items-end h-[150px] my-5 border-b-2 border-gray-200 dark:border-gray-600">
         {QUADRANT_ORDER.map((quadrant) => (
           <div key={quadrant} className="bar-group flex flex-col items-center w-[20%]">

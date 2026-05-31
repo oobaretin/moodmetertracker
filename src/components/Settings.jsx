@@ -57,13 +57,10 @@ export default function Settings({ onPreferencesChange, onDataChange, onClearAll
   };
 
   const handleDeleteAll = () => {
-    if (window.confirm('Are you absolutely sure? This will delete ALL your mood entries and cannot be undone.')) {
-      clearAllMoodData();
-      onClearAllMoodData?.();
-      onDataChange();
-      setShowDeleteConfirm(false);
-      alert('All data has been deleted');
-    }
+    clearAllMoodData();
+    onClearAllMoodData?.();
+    onDataChange();
+    setShowDeleteConfirm(false);
   };
 
   const resetClearButton = () => {

@@ -2,6 +2,8 @@ import { useState, useEffect, useCallback } from 'react';
 import Navigation from './components/Navigation';
 import BottomNavigation from './components/BottomNavigation';
 import PageHeader from './components/PageHeader';
+import CollapsibleSection from './components/CollapsibleSection';
+import LastLoggedBanner from './components/LastLoggedBanner';
 import WelcomeScreen from './components/WelcomeScreen';
 import OnboardingOverlay from './components/OnboardingOverlay';
 import MoodGrid from './components/MoodGrid';
@@ -274,8 +276,12 @@ function App() {
         <PageHeader title={tabMeta.pageTitle} description={tabMeta.pageDescription} />
         {activeTab === 'track' && (
           <div className="space-y-6">
+            <LastLoggedBanner
+              entries={entries}
+              onGoInsights={() => handleTabChange('insights')}
+            />
             <div className="flex flex-col lg:flex-row gap-6 justify-center items-start">
-              <div className="w-full lg:w-auto lg:flex-shrink-0 flex flex-col items-center gap-4">
+              <div className="w-full lg:flex-1 lg:max-w-xl flex flex-col items-center gap-4 order-1">
                 <MoodGrid
                   onMoodSelect={handleMoodSelect}
                   selectedPosition={selectedMood}
@@ -285,7 +291,7 @@ function App() {
                 />
                 <QuickMoodButtons onMoodSelect={handleMoodSelect} />
               </div>
-              <div className="w-full lg:w-80 lg:flex-shrink-0 flex justify-center lg:justify-start lg:pt-8">
+              <div className="w-full lg:w-80 lg:flex-shrink-0 flex justify-center lg:justify-start lg:pt-4 order-2">
                 <StreakBadge
                   streak={stats.streakCount}
                   totalCheckIns={entries.length}
@@ -293,33 +299,29 @@ function App() {
                 />
               </div>
             </div>
-            <QuadrantTrendsChart entries={entries} />
-            <RecentReflections moodHistory={moodHistoryList} />
-            <TimeOfDayPatterns moodHistory={moodHistoryList} />
-            {moodHistoryList.length > 0 && (
-              <div className="mt-8 max-w-2xl mx-auto">
-                <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Recent check-ins</h3>
-                <ul className="flex flex-wrap gap-2">
-                  {[...moodHistoryList].reverse().map((entry, index) => (
-                    <li
-                      key={`${entry.date}-${entry.time}-${index}`}
-                      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-gray-100 dark:bg-gray-800 text-xs text-gray-700 dark:text-gray-300"
-                    >
-                      <span className={`capitalize font-medium ${
-                        entry.quadrant === 'red' ? 'text-red-600 dark:text-red-400' :
-                        entry.quadrant === 'blue' ? 'text-blue-600 dark:text-blue-400' :
-                        entry.quadrant === 'yellow' ? 'text-amber-600 dark:text-amber-400' :
-                        'text-emerald-600 dark:text-emerald-400'
-                      }`}>
-                        {entry.quadrant}
-                      </span>
-                      <span className="text-gray-500 dark:text-gray-400">{entry.time}</span>
-                      <span className="text-gray-400 dark:text-gray-500">{entry.date}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
+            <div className="space-y-3 max-w-2xl mx-auto w-full">
+              <CollapsibleSection
+                title="Your last 7 days"
+                subtitle={entries.length ? 'Quadrant trends and insight' : 'Log moods to see trends'}
+                defaultOpen={entries.length > 0}
+              >
+                <QuadrantTrendsChart entries={entries} embedded />
+              </CollapsibleSection>
+              <CollapsibleSection
+                title="Recent reflections"
+                subtitle={moodHistoryList.length ? 'Latest notes from check-ins' : 'Notes appear after you log'}
+                defaultOpen={false}
+              >
+                <RecentReflections moodHistory={moodHistoryList} embedded />
+              </CollapsibleSection>
+              <CollapsibleSection
+                title="Time of day patterns"
+                subtitle="Morning vs evening mood rhythm"
+                defaultOpen={false}
+              >
+                <TimeOfDayPatterns moodHistory={moodHistoryList} embedded />
+              </CollapsibleSection>
+            </div>
           </div>
         )}
 
@@ -378,7 +380,7 @@ function App() {
       <ToastContainer toasts={toasts} onRemove={removeToast} />
       {bottomToastMessage && <BottomToast message={bottomToastMessage} onHide={() => setBottomToastMessage(null)} duration={3000} />}
       <Celebration show={celebration.show} message={celebration.message} onComplete={() => setCelebration({ show: false, message: '' })} />
-      <div className="mb-20 md:mb-0">
+      <div className="mb-20 md:mb-0 hidden md:block">
         <Footer onTabChange={handleTabChange} />
       </div>
     </div>

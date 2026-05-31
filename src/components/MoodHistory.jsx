@@ -4,6 +4,7 @@ import { formatTimestamp, getDateKey, getTimeOfDay } from '../utils/dateUtils';
 import { getQuadrantColor } from '../utils/moodUtils';
 import { deleteMoodEntry } from '../utils/storage';
 import EmptyState from './EmptyState';
+import ConfirmDialog from './ConfirmDialog';
 
 export default function MoodHistory({ entries, onEdit, onDelete, onRefresh }) {
   const [searchQuery, setSearchQuery] = useState('');
@@ -11,6 +12,7 @@ export default function MoodHistory({ entries, onEdit, onDelete, onRefresh }) {
   const [selectedActivity, setSelectedActivity] = useState('all');
   const [dateRange, setDateRange] = useState('all');
   const [showFilters, setShowFilters] = useState(false);
+  const [pendingDeleteId, setPendingDeleteId] = useState(null);
 
   const filteredEntries = useMemo(() => {
     let filtered = [...entries].sort((a, b) => 
@@ -49,10 +51,15 @@ export default function MoodHistory({ entries, onEdit, onDelete, onRefresh }) {
     return filtered;
   }, [entries, searchQuery, selectedQuadrant, selectedActivity, dateRange]);
 
-  const handleDelete = async (id) => {
-    if (window.confirm('Are you sure you want to delete this entry?')) {
-      deleteMoodEntry(id);
+  const handleDelete = (id) => {
+    setPendingDeleteId(id);
+  };
+
+  const confirmDelete = () => {
+    if (pendingDeleteId) {
+      deleteMoodEntry(pendingDeleteId);
       onRefresh();
+      setPendingDeleteId(null);
     }
   };
 
@@ -250,6 +257,17 @@ export default function MoodHistory({ entries, onEdit, onDelete, onRefresh }) {
           ))
         )}
       </div>
+
+      <ConfirmDialog
+        open={pendingDeleteId != null}
+        title="Delete mood entry?"
+        message="This check-in will be removed permanently. This cannot be undone."
+        confirmLabel="Delete"
+        cancelLabel="Keep entry"
+        variant="danger"
+        onConfirm={confirmDelete}
+        onCancel={() => setPendingDeleteId(null)}
+      />
     </div>
   );
 }
